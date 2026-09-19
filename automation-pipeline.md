@@ -11,3 +11,4 @@ However, before you automate anything in the cloud, you must secure your local w
 In this subchapter, we will focus on enforcing code quality at the source. This starts with protecting your primary branches and setting up [pre-commit hooks](https://pre-commit.com/) to automatically format your code before a commit is even created.
 
 - **[Module 1: Protect the default branch](book/01_protect_the_default_branch.md)**
+- **[Module 2: Catch errors early with pre-commit hooks](book/02_pre_commit_hooks.md)**
