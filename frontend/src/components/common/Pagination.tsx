@@ -48,7 +48,15 @@ export const Pagination: React.FC<PaginationProps> = ({
       ];
     }
 
-    return [1, 'ellipsis', safePage - 1, safePage, safePage + 1, 'ellipsis', totalPages];
+    return [
+      1,
+      'ellipsis',
+      safePage - 1,
+      safePage,
+      safePage + 1,
+      'ellipsis',
+      totalPages,
+    ];
   };
 
   const pages = getPageNumbers();
@@ -69,15 +77,31 @@ export const Pagination: React.FC<PaginationProps> = ({
     >
       {/* Left: Summary text */}
       <div style={{ color: 'var(--text-secondary)' }}>
-        Showing <strong style={{ color: 'var(--text-primary)' }}>{fromItem}</strong> to{' '}
+        Showing{' '}
+        <strong style={{ color: 'var(--text-primary)' }}>{fromItem}</strong> to{' '}
         <strong style={{ color: 'var(--text-primary)' }}>{toItem}</strong> of{' '}
-        <strong style={{ color: 'var(--text-primary)' }}>{totalItems}</strong> items
+        <strong style={{ color: 'var(--text-primary)' }}>{totalItems}</strong>{' '}
+        items
       </div>
 
       {/* Right: Controls (Limit select + Page numbers) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '1rem',
+        }}
+      >
         {/* Page size select */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            color: 'var(--text-secondary)',
+          }}
+        >
           <span>Rows per page:</span>
           <select
             value={pageSize}
@@ -154,7 +178,9 @@ export const Pagination: React.FC<PaginationProps> = ({
                   height: '34px',
                   padding: '0 0.35rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: isActive ? '1px solid #6366f1' : '1px solid var(--border-subtle)',
+                  border: isActive
+                    ? '1px solid #6366f1'
+                    : '1px solid var(--border-subtle)',
                   background: isActive
                     ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                     : 'rgba(255, 255, 255, 0.03)',
@@ -162,7 +188,9 @@ export const Pagination: React.FC<PaginationProps> = ({
                   fontWeight: isActive ? 700 : 500,
                   fontSize: '0.85rem',
                   cursor: isActive || isLoading ? 'default' : 'pointer',
-                  boxShadow: isActive ? '0 0 10px rgba(99, 102, 241, 0.35)' : 'none',
+                  boxShadow: isActive
+                    ? '0 0 10px rgba(99, 102, 241, 0.35)'
+                    : 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -187,7 +215,8 @@ export const Pagination: React.FC<PaginationProps> = ({
               alignItems: 'center',
               gap: '0.3rem',
               opacity: safePage >= totalPages || isLoading ? 0.45 : 1,
-              cursor: safePage >= totalPages || isLoading ? 'not-allowed' : 'pointer',
+              cursor:
+                safePage >= totalPages || isLoading ? 'not-allowed' : 'pointer',
             }}
             title="Next Page"
           >

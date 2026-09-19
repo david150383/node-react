@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Layers, Search, RefreshCw, Loader2, Tag, X, SlidersHorizontal } from 'lucide-react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Layers,
+  Search,
+  RefreshCw,
+  Loader2,
+  Tag,
+  X,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { productsApi, Product } from '../../api/products.api.ts';
 import { adminApi } from '../../api/admin.api.ts';
 import { ProductFormModal } from './ProductFormModal.tsx';
@@ -65,8 +76,36 @@ export const AdminProductManager: React.FC = () => {
   }, [currentPage, pageSize, categoryFilter, debouncedSearch]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    let cancelled = false;
+    const offset = (currentPage - 1) * pageSize;
+    productsApi
+      .getProducts(
+        pageSize,
+        null,
+        categoryFilter === 'ALL' ? undefined : categoryFilter,
+        debouncedSearch || undefined,
+        offset,
+        'ALL',
+      )
+      .then((res) => {
+        if (!cancelled) {
+          setProducts(res.data || []);
+          setTotalItems(res.pagination.total ?? (res.data?.length || 0));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load admin products:', err);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, pageSize, categoryFilter, debouncedSearch]);
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
@@ -78,8 +117,9 @@ export const AdminProductManager: React.FC = () => {
       } else {
         fetchProducts();
       }
-    } catch (err: any) {
-      alert(`Failed to delete product: ${err.message || 'Unknown error'}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Failed to delete product: ${message}`);
     }
   };
 
@@ -100,22 +140,42 @@ export const AdminProductManager: React.FC = () => {
   return (
     <div>
       {/* Header & Controls */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-      }}>
-        <div style={{
+      <div
+        style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
           gap: '1rem',
-        }}>
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+          }}
+        >
           {/* Search Input */}
-          <div style={{ position: 'relative', minWidth: '280px', maxWidth: '400px', flexGrow: 1 }}>
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <div
+            style={{
+              position: 'relative',
+              minWidth: '280px',
+              maxWidth: '400px',
+              flexGrow: 1,
+            }}
+          >
+            <Search
+              size={16}
+              color="var(--text-muted)"
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+            />
             <input
               type="text"
               placeholder="Search by name, SKU, or specs..."
@@ -157,13 +217,23 @@ export const AdminProductManager: React.FC = () => {
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button className="btn btn-secondary" onClick={fetchProducts} style={{ padding: '0.65rem' }} title="Refresh">
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+          >
+            <button
+              className="btn btn-secondary"
+              onClick={fetchProducts}
+              style={{ padding: '0.65rem' }}
+              title="Refresh"
+            >
               <RefreshCw size={16} />
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => { setEditingProduct(null); setIsFormOpen(true); }}
+              onClick={() => {
+                setEditingProduct(null);
+                setIsFormOpen(true);
+              }}
             >
               <Plus size={16} />
               <span>Add Product</span>
@@ -172,8 +242,24 @@ export const AdminProductManager: React.FC = () => {
         </div>
 
         {/* Category Pills Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--text-muted)', fontSize: '0.8rem', marginRight: '0.2rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              color: 'var(--text-muted)',
+              fontSize: '0.8rem',
+              marginRight: '0.2rem',
+            }}
+          >
             <SlidersHorizontal size={13} />
             <span>Category:</span>
           </div>
@@ -187,7 +273,9 @@ export const AdminProductManager: React.FC = () => {
                   padding: '0.25rem 0.65rem',
                   fontSize: '0.75rem',
                   borderRadius: 'var(--radius-full)',
-                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255, 255, 255, 0.04)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                    : 'rgba(255, 255, 255, 0.04)',
                   color: isSelected ? '#ffffff' : 'var(--text-secondary)',
                   border: '1px solid',
                   borderColor: isSelected ? '#6366f1' : 'var(--border-subtle)',
@@ -205,26 +293,60 @@ export const AdminProductManager: React.FC = () => {
       </div>
 
       {/* Table Container */}
-      <div className="glass-panel" style={{ overflowX: 'auto', padding: '0.5rem' }}>
+      <div
+        className="glass-panel"
+        style={{ overflowX: 'auto', padding: '0.5rem' }}
+      >
         {isLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem', gap: '0.75rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '3.5rem',
+              gap: '0.75rem',
+            }}
+          >
             <Loader2 size={32} color="#6366f1" className="animate-spin" />
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Loading catalog page {currentPage} from Product Service...</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Loading catalog page {currentPage} from Product Service...
+            </p>
           </div>
         ) : products.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '3.5rem',
+              color: 'var(--text-muted)',
+            }}
+          >
             No products found matching your filter criteria.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'left',
+              fontSize: '0.875rem',
+            }}
+          >
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              <tr
+                style={{
+                  borderBottom: '1px solid var(--border-subtle)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <th style={{ padding: '0.85rem 1rem' }}>Product</th>
                 <th style={{ padding: '0.85rem 1rem' }}>SKU</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Category</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Price</th>
                 <th style={{ padding: '0.85rem 1rem' }}>Status</th>
-                <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Actions</th>
+                <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -235,30 +357,64 @@ export const AdminProductManager: React.FC = () => {
                     borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
                     transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background =
+                      'rgba(255, 255, 255, 0.02)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
                 >
                   <td style={{ padding: '1rem', fontWeight: 600 }}>{p.name}</td>
-                  <td style={{ padding: '1rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{p.sku}</td>
+                  <td
+                    style={{
+                      padding: '1rem',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    {p.sku}
+                  </td>
                   <td style={{ padding: '1rem' }}>
-                    <span className="badge badge-indigo" style={{ fontSize: '0.7rem' }}>
+                    <span
+                      className="badge badge-indigo"
+                      style={{ fontSize: '0.7rem' }}
+                    >
                       <Tag size={10} /> {p.category}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <td
+                    style={{
+                      padding: '1rem',
+                      fontWeight: 700,
+                      color: '#f8fafc',
+                    }}
+                  >
                     ${(p.price_cents / 100).toFixed(2)}
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    <span className={`badge ${p.status === 'ACTIVE' ? 'badge-emerald' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
+                    <span
+                      className={`badge ${p.status === 'ACTIVE' ? 'badge-emerald' : 'badge-amber'}`}
+                      style={{ fontSize: '0.7rem' }}
+                    >
                       {p.status}
                     </span>
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
                       <button
                         className="btn btn-secondary"
                         onClick={() => setRestockProduct(p)}
-                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem' }}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.75rem',
+                        }}
                         title="Restock Inventory"
                       >
                         <Layers size={14} color="#10b981" />
@@ -266,8 +422,14 @@ export const AdminProductManager: React.FC = () => {
                       </button>
                       <button
                         className="btn btn-secondary"
-                        onClick={() => { setEditingProduct(p); setIsFormOpen(true); }}
-                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem' }}
+                        onClick={() => {
+                          setEditingProduct(p);
+                          setIsFormOpen(true);
+                        }}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.75rem',
+                        }}
                         title="Edit Product"
                       >
                         <Edit2 size={14} color="#6366f1" />
@@ -275,7 +437,11 @@ export const AdminProductManager: React.FC = () => {
                       <button
                         className="btn btn-secondary"
                         onClick={() => handleDelete(p.id, p.name)}
-                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', color: '#f43f5e' }}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          fontSize: '0.75rem',
+                          color: '#f43f5e',
+                        }}
                         title="Delete Product"
                       >
                         <Trash2 size={14} />
@@ -318,4 +484,3 @@ export const AdminProductManager: React.FC = () => {
     </div>
   );
 };
-

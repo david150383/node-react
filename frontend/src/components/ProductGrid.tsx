@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, RefreshCw, Search, SlidersHorizontal, Sparkles, X, Layers, Database } from 'lucide-react';
+import {
+  Loader2,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+  Layers,
+  Database,
+} from 'lucide-react';
 import { productsApi, Product } from '../api/products.api.ts';
 import { ProductCard } from './ProductCard.tsx';
 
@@ -42,7 +51,12 @@ export const ProductGrid: React.FC = () => {
   const fetchProducts = useCallback(async (cat: string, search: string) => {
     setIsLoading(true);
     try {
-      const response = await productsApi.getProducts(PAGE_SIZE, null, cat, search);
+      const response = await productsApi.getProducts(
+        PAGE_SIZE,
+        null,
+        cat,
+        search,
+      );
       setProducts(response.data || []);
       setNextCursor(response.pagination?.next_cursor || null);
       setHasMore(response.pagination?.has_more || false);
@@ -57,8 +71,32 @@ export const ProductGrid: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts(selectedCategory, debouncedSearch);
-  }, [selectedCategory, debouncedSearch, fetchProducts]);
+    let cancelled = false;
+    productsApi
+      .getProducts(PAGE_SIZE, null, selectedCategory, debouncedSearch)
+      .then((response) => {
+        if (!cancelled) {
+          setProducts(response.data || []);
+          setNextCursor(response.pagination?.next_cursor || null);
+          setHasMore(response.pagination?.has_more || false);
+          if (response.pagination?.total !== undefined) {
+            setTotalCount(response.pagination.total);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load products:', err);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCategory, debouncedSearch]);
 
   // Load next page using the keyset cursor
   const loadMore = async () => {
@@ -74,7 +112,9 @@ export const ProductGrid: React.FC = () => {
       setProducts((prev) => {
         // Deduplicate in case of any overlap
         const existingIds = new Set(prev.map((p) => p.id));
-        const newUnique = (response.data || []).filter((p) => !existingIds.has(p.id));
+        const newUnique = (response.data || []).filter(
+          (p) => !existingIds.has(p.id),
+        );
         return [...prev, ...newUnique];
       });
       setNextCursor(response.pagination?.next_cursor || null);
@@ -99,28 +139,43 @@ export const ProductGrid: React.FC = () => {
   return (
     <section style={{ marginBottom: '4rem' }}>
       {/* Top Filter & Search Controls */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.25rem',
-        marginBottom: '1.5rem',
-      }}>
-        {/* Search bar and refresh */}
-        <div style={{
+      <div
+        style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-        }}>
+          flexDirection: 'column',
+          gap: '1.25rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        {/* Search bar and refresh */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+          }}
+        >
           {/* Search Input */}
-          <div style={{
-            position: 'relative',
-            minWidth: '280px',
-            maxWidth: '460px',
-            flexGrow: 1,
-          }}>
-            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+          <div
+            style={{
+              position: 'relative',
+              minWidth: '280px',
+              maxWidth: '460px',
+              flexGrow: 1,
+            }}
+          >
+            <Search
+              size={18}
+              color="var(--text-muted)"
+              style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+            />
             <input
               type="text"
               placeholder="Search by title, SKU, or specs..."
@@ -162,7 +217,9 @@ export const ProductGrid: React.FC = () => {
           </div>
 
           {/* Cursor status and refresh badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+          >
             <div
               className="badge"
               style={{
@@ -193,14 +250,25 @@ export const ProductGrid: React.FC = () => {
         </div>
 
         {/* Category Pills Bar */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.45rem',
-          flexWrap: 'wrap',
-          paddingBottom: '0.25rem',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontSize: '0.8rem', marginRight: '0.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            flexWrap: 'wrap',
+            paddingBottom: '0.25rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              color: 'var(--text-muted)',
+              fontSize: '0.8rem',
+              marginRight: '0.25rem',
+            }}
+          >
             <SlidersHorizontal size={14} />
             <span>Category:</span>
           </div>
@@ -216,7 +284,9 @@ export const ProductGrid: React.FC = () => {
                   padding: '0.35rem 0.85rem',
                   fontSize: '0.8rem',
                   borderRadius: 'var(--radius-full)',
-                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255, 255, 255, 0.04)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                    : 'rgba(255, 255, 255, 0.04)',
                   color: isSelected ? '#ffffff' : 'var(--text-secondary)',
                   border: '1px solid',
                   borderColor: isSelected ? '#6366f1' : 'var(--border-subtle)',
@@ -234,22 +304,27 @@ export const ProductGrid: React.FC = () => {
 
       {/* Results Summary Bar */}
       {!isLoading && products.length > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.6rem 0.85rem',
-          background: 'rgba(255, 255, 255, 0.02)',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-subtle)',
-          marginBottom: '1.5rem',
-          fontSize: '0.82rem',
-          color: 'var(--text-muted)',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.6rem 0.85rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-subtle)',
+            marginBottom: '1.5rem',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Layers size={14} color="#818cf8" />
             <span>
-              Showing <strong style={{ color: 'var(--text-primary)' }}>{products.length}</strong>
+              Showing{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {products.length}
+              </strong>
               {totalCount !== null && ` of ${totalCount}`} products
               {selectedCategory !== 'ALL' && ` in ${selectedCategory}`}
               {debouncedSearch && ` matching "${debouncedSearch}"`}
@@ -257,7 +332,13 @@ export const ProductGrid: React.FC = () => {
           </div>
 
           {nextCursor && (
-            <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--text-muted)',
+              }}
+            >
               Next Cursor: {nextCursor.slice(0, 16)}...
             </div>
           )}
@@ -266,16 +347,44 @@ export const ProductGrid: React.FC = () => {
 
       {/* Product Cards Grid */}
       {isLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '320px', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '320px',
+            gap: '1rem',
+          }}
+        >
           <Loader2 size={36} color="#6366f1" className="animate-spin" />
-          <p style={{ color: 'var(--text-secondary)' }}>Loading catalog from Product Service (Keyset Pagination)...</p>
+          <p style={{ color: 'var(--text-secondary)' }}>
+            Loading catalog from Product Service (Keyset Pagination)...
+          </p>
         </div>
       ) : products.length === 0 ? (
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
-          <Sparkles size={36} color="#6366f1" style={{ margin: '0 auto 1rem', display: 'block' }} />
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>No products found</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
-            No products match your current filters. Try changing category or searching with another keyword.
+        <div
+          className="glass-panel"
+          style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}
+        >
+          <Sparkles
+            size={36}
+            color="#6366f1"
+            style={{ margin: '0 auto 1rem', display: 'block' }}
+          />
+          <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+            No products found
+          </h3>
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.9rem',
+              maxWidth: '400px',
+              margin: '0 auto 1.5rem',
+            }}
+          >
+            No products match your current filters. Try changing category or
+            searching with another keyword.
           </p>
           {(selectedCategory !== 'ALL' || debouncedSearch) && (
             <button
@@ -291,18 +400,28 @@ export const ProductGrid: React.FC = () => {
         </div>
       ) : (
         <>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '1.75rem',
-          }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: '1.75rem',
+            }}
+          >
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
 
           {/* Cursor Pagination Button & Footer */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '3.5rem', gap: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: '3.5rem',
+              gap: '1rem',
+            }}
+          >
             {hasMore ? (
               <button
                 className="btn btn-secondary"
@@ -316,13 +435,18 @@ export const ProductGrid: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.6rem',
-                  background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
+                  background:
+                    'linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
                   border: '1px solid rgba(99, 102, 241, 0.3)',
                 }}
               >
                 {isLoadingMore ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" color="#818cf8" />
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                      color="#818cf8"
+                    />
                     <span>Fetching Next Keyset Page...</span>
                   </>
                 ) : (
@@ -333,14 +457,16 @@ export const ProductGrid: React.FC = () => {
                 )}
               </button>
             ) : (
-              <div style={{
-                padding: '0.75rem 1.5rem',
-                borderRadius: 'var(--radius-full)',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem',
-              }}>
+              <div
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.85rem',
+                }}
+              >
                 ✓ All products loaded ({products.length} total)
               </div>
             )}
@@ -350,4 +476,3 @@ export const ProductGrid: React.FC = () => {
     </section>
   );
 };
-

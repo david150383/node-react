@@ -20,7 +20,9 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('apex_cart');
     if (saved) {
@@ -39,14 +41,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [items]);
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotalCents = items.reduce((sum, item) => sum + item.product.price_cents * item.quantity, 0);
+  const cartTotalCents = items.reduce(
+    (sum, item) => sum + item.product.price_cents * item.quantity,
+    0,
+  );
 
   const addToCart = (product: Product, quantity = 1) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {
         return prev.map((i) =>
-          i.product.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.product.id === product.id
+            ? { ...i, quantity: i.quantity + quantity }
+            : i,
         );
       }
       return [...prev, { product, quantity }];
@@ -64,7 +71,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i))
+      prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i)),
     );
   };
 

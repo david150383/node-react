@@ -13,7 +13,13 @@ export class ApiError extends Error {
   public details?: unknown[];
   public requestId?: string;
 
-  constructor(statusCode: number, code: string, message: string, details?: unknown[], requestId?: string) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    details?: unknown[],
+    requestId?: string,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
@@ -35,14 +41,20 @@ function generateW3CTraceParent(): string {
   return `00-${traceId}-${spanId}-01`;
 }
 
-export function getStoredTokens(): { accessToken: string | null; refreshToken: string | null } {
+export function getStoredTokens(): {
+  accessToken: string | null;
+  refreshToken: string | null;
+} {
   return {
     accessToken: localStorage.getItem('apex_access_token'),
     refreshToken: localStorage.getItem('apex_refresh_token'),
   };
 }
 
-export function setStoredTokens(accessToken: string, refreshToken?: string): void {
+export function setStoredTokens(
+  accessToken: string,
+  refreshToken?: string,
+): void {
   localStorage.setItem('apex_access_token', accessToken);
   if (refreshToken !== undefined) {
     if (refreshToken) {
@@ -89,7 +101,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 
       const refreshData = await refreshRes.json();
       const newAccessToken = refreshData.data?.accessToken;
-      const newRefreshToken = refreshData.data?.refreshToken || refreshToken || '';
+      const newRefreshToken =
+        refreshData.data?.refreshToken || refreshToken || '';
 
       if (newAccessToken) {
         setStoredTokens(newAccessToken, newRefreshToken);
@@ -111,15 +124,22 @@ export async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-async function parseResponseBody(response: Response): Promise<any> {
+async function parseResponseBody(
+  response: Response,
+): Promise<Record<string, unknown> & Partial<ApiErrorResponse>> {
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
-    return await response.json();
+    return (await response.json()) as Record<string, unknown> &
+      Partial<ApiErrorResponse>;
   }
-  return await response.text();
+  return { raw: await response.text() } as Record<string, unknown> &
+    Partial<ApiErrorResponse>;
 }
 
-export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function apiClient<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
   const { accessToken } = getStoredTokens();
   const headers = new Headers(options.headers || {});
 
@@ -149,7 +169,11 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
   const response = await fetch(`${BASE_URL}${endpoint}`, fetchOptions);
 
   // Handle Token Expiry & Automatic Refresh Rotation
-  if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh')) {
+  if (
+    response.status === 401 &&
+    !endpoint.includes('/auth/login') &&
+    !endpoint.includes('/auth/refresh')
+  ) {
     const newAccessToken = await refreshAccessToken();
     if (newAccessToken) {
       headers.set('Authorization', `Bearer ${newAccessToken}`);
@@ -163,11 +187,20 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
 
       if (!retryResponse.ok) {
         const errorCode = retryData?.error?.code || 'HTTP_ERROR';
-        const errorMsg = retryData?.error?.message || retryResponse.statusText || 'An unexpected error occurred';
-        throw new ApiError(retryResponse.status, errorCode, errorMsg, retryData?.error?.details, retryData?.error?.requestId);
+        const errorMsg =
+          retryData?.error?.message ||
+          retryResponse.statusText ||
+          'An unexpected error occurred';
+        throw new ApiError(
+          retryResponse.status,
+          errorCode,
+          errorMsg,
+          retryData?.error?.details,
+          retryData?.error?.requestId,
+        );
       }
 
-      return retryData;
+      return retryData as unknown as T;
     }
   }
 
@@ -175,9 +208,18 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
 
   if (!response.ok) {
     const errorCode = data?.error?.code || 'HTTP_ERROR';
-    const errorMsg = data?.error?.message || response.statusText || 'An unexpected error occurred';
-    throw new ApiError(response.status, errorCode, errorMsg, data?.error?.details, data?.error?.requestId);
+    const errorMsg =
+      data?.error?.message ||
+      response.statusText ||
+      'An unexpected error occurred';
+    throw new ApiError(
+      response.status,
+      errorCode,
+      errorMsg,
+      data?.error?.details,
+      data?.error?.requestId,
+    );
   }
 
-  return data;
+  return data as unknown as T;
 }

@@ -36,37 +36,57 @@ export interface PaymentDetails {
   updatedAt: string;
 }
 
-export function mapPayment(p: any): PaymentDetails {
-  const orderId = p?.orderId || p?.order_id || '';
-  const customerId = p?.customerId || p?.customer_id || '';
+export interface RawPaymentResponse {
+  data?:
+    | {
+        payment?: Record<string, unknown>;
+      }
+    | Record<string, unknown>;
+}
+
+export function mapPayment(p: Record<string, unknown>): PaymentDetails {
+  const orderId = String(p?.orderId || p?.order_id || '');
+  const customerId = String(p?.customerId || p?.customer_id || '');
   const amount = Number(p?.amountCents ?? p?.amount_cents ?? 0);
-  const transactionId = p?.transactionId ?? p?.transaction_id ?? null;
-  const failureReason = p?.failureReason ?? p?.failure_reason ?? null;
-  const idempotencyKey = p?.idempotencyKey || p?.idempotency_key || '';
-  const created = p?.createdAt || p?.created_at || new Date().toISOString();
-  const updated = p?.updatedAt || p?.updated_at || new Date().toISOString();
+  const transactionId = (p?.transactionId ?? p?.transaction_id ?? null) as
+    string | null;
+  const failureReason = (p?.failureReason ?? p?.failure_reason ?? null) as
+    string | null;
+  const idempotencyKey = String(p?.idempotencyKey || p?.idempotency_key || '');
+  const created = (p?.createdAt ||
+    p?.created_at ||
+    new Date().toISOString()) as string | number | Date;
+  const updated = (p?.updatedAt ||
+    p?.updated_at ||
+    new Date().toISOString()) as string | number | Date;
 
   return {
-    id: p?.id || '',
+    id: String(p?.id || ''),
     order_id: orderId,
     orderId,
     customer_id: customerId,
     customerId,
     amount_cents: amount,
     amountCents: amount,
-    currency: p?.currency || 'USD',
-    status: p?.status || 'PENDING',
-    provider: p?.provider || 'MOCK_GATEWAY',
+    currency: String(p?.currency || 'USD'),
+    status:
+      (p?.status as 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED') ||
+      'PENDING',
+    provider: String(p?.provider || 'MOCK_GATEWAY'),
     transaction_id: transactionId,
     transactionId,
     failure_reason: failureReason,
     failureReason,
     idempotency_key: idempotencyKey,
     idempotencyKey,
-    created_at: typeof created === 'string' ? created : new Date(created).toISOString(),
-    createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
-    updated_at: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
-    updatedAt: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    created_at:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    createdAt:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    updated_at:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    updatedAt:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
   };
 }
 
@@ -87,7 +107,7 @@ export const paymentsApi = {
     paymentMethodId?: string;
     idempotencyKey?: string;
   }): Promise<{ data: PaymentDetails }> {
-    const res = await apiClient<any>('/payments', {
+    const res = await apiClient<RawPaymentResponse>('/payments', {
       method: 'POST',
       body: JSON.stringify({
         orderId: params.orderId,
@@ -97,14 +117,17 @@ export const paymentsApi = {
         idempotencyKey: params.idempotencyKey,
       }),
     });
-    const rawPayment = res.data?.payment || res.data;
-    return { data: mapPayment(rawPayment) };
+    const rawPayment =
+      (res.data && !Array.isArray(res.data) && 'payment' in res.data
+        ? res.data.payment
+        : res.data) || {};
+    return { data: mapPayment(rawPayment as Record<string, unknown>) };
   },
 
   async createPaymentIntent(
     amountCents: number,
     currency: string = 'USD',
-    orderId?: string
+    orderId?: string,
   ): Promise<{ data: PaymentIntentResponse }> {
     if (orderId) {
       try {
@@ -116,7 +139,8 @@ export const paymentsApi = {
 
     return {
       data: {
-        clientSecret: 'mock_client_secret_' + Math.random().toString(36).substring(2),
+        clientSecret:
+          'mock_client_secret_' + Math.random().toString(36).substring(2),
         publishableKey: 'pk_test_mock',
         amountCents,
         currency,
@@ -125,18 +149,35 @@ export const paymentsApi = {
     };
   },
 
-  async getPaymentByOrderId(orderId: string): Promise<{ data: PaymentDetails }> {
-    const res = await apiClient<any>(`/payments/order/${orderId}`);
-    const rawPayment = res.data?.payment || res.data;
-    return { data: mapPayment(rawPayment) };
+  async getPaymentByOrderId(
+    orderId: string,
+  ): Promise<{ data: PaymentDetails }> {
+    const res = await apiClient<RawPaymentResponse>(
+      `/payments/order/${orderId}`,
+    );
+    const rawPayment =
+      (res.data && !Array.isArray(res.data) && 'payment' in res.data
+        ? res.data.payment
+        : res.data) || {};
+    return { data: mapPayment(rawPayment as Record<string, unknown>) };
   },
 
-  async refundPayment(paymentId: string, amountCents?: number, reason?: string): Promise<{ data: PaymentDetails }> {
-    const res = await apiClient<any>(`/payments/${paymentId}/refund`, {
-      method: 'POST',
-      body: JSON.stringify({ amountCents, reason }),
-    });
-    const rawPayment = res.data?.payment || res.data;
-    return { data: mapPayment(rawPayment) };
+  async refundPayment(
+    paymentId: string,
+    amountCents?: number,
+    reason?: string,
+  ): Promise<{ data: PaymentDetails }> {
+    const res = await apiClient<RawPaymentResponse>(
+      `/payments/${paymentId}/refund`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ amountCents, reason }),
+      },
+    );
+    const rawPayment =
+      (res.data && !Array.isArray(res.data) && 'payment' in res.data
+        ? res.data.payment
+        : res.data) || {};
+    return { data: mapPayment(rawPayment as Record<string, unknown>) };
   },
 };

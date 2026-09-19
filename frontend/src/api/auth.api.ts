@@ -21,7 +21,31 @@ export interface AuthResponse {
   };
 }
 
-function mapUser(u: any): UserProfile {
+export interface RawUser {
+  id?: string;
+  email?: string;
+  first_name?: string;
+  firstName?: string;
+  last_name?: string;
+  lastName?: string;
+  role?: string;
+}
+
+export interface RawAuthResponse {
+  message?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  user?: RawUser;
+  data?: {
+    accessToken?: string;
+    refreshToken?: string;
+    expiresIn?: number;
+    user?: RawUser;
+  } & RawUser;
+}
+
+function mapUser(u: RawUser | undefined | null): UserProfile {
   const firstName = u?.firstName || u?.first_name || '';
   const lastName = u?.lastName || u?.last_name || '';
   return {
@@ -36,8 +60,13 @@ function mapUser(u: any): UserProfile {
 }
 
 export const authApi = {
-  async register(data: { email: string; password: string; first_name: string; last_name: string }): Promise<UserProfile> {
-    const res = await apiClient<any>('/auth/register', {
+  async register(data: {
+    email: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+  }): Promise<UserProfile> {
+    const res = await apiClient<RawAuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -45,15 +74,18 @@ export const authApi = {
     return mapUser(rawUser);
   },
 
-  async login(credentials: { email: string; password: string }): Promise<AuthResponse['data']> {
-    const res = await apiClient<any>('/auth/login', {
+  async login(credentials: {
+    email: string;
+    password: string;
+  }): Promise<AuthResponse['data']> {
+    const res = await apiClient<RawAuthResponse>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ ...credentials, client_type: "WEB" }),
+      body: JSON.stringify({ ...credentials, client_type: 'WEB' }),
     });
 
     const data = res.data || res;
     const user = mapUser(data.user);
-    const accessToken = data.accessToken;
+    const accessToken = data.accessToken || '';
     const refreshToken = data.refreshToken || '';
 
     setStoredTokens(accessToken, refreshToken);
@@ -79,7 +111,7 @@ export const authApi = {
   },
 
   async getProfile(): Promise<UserProfile> {
-    const res = await apiClient<any>('/auth/me');
+    const res = await apiClient<RawAuthResponse>('/auth/me');
     const rawUser = res.data?.user || res.data;
     return mapUser(rawUser);
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Package, AlertCircle, Loader2 } from 'lucide-react';
 import { adminApi, CreateProductInput } from '../../api/admin.api.ts';
 import { Product } from '../../api/products.api.ts';
@@ -10,43 +10,42 @@ interface ProductFormModalProps {
   editingProduct: Product | null;
 }
 
-export const ProductFormModal: React.FC<ProductFormModalProps> = ({
-  isOpen,
+export const ProductFormModal: React.FC<ProductFormModalProps> = (props) => {
+  if (!props.isOpen) return null;
+
+  return (
+    <ProductFormDialog
+      key={props.editingProduct?.id ?? 'new-product'}
+      {...props}
+    />
+  );
+};
+
+const ProductFormDialog: React.FC<ProductFormModalProps> = ({
   onClose,
   onSaved,
   editingProduct,
 }) => {
-  const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
-  const [category, setCategory] = useState('Electronics');
-  const [priceUsd, setPriceUsd] = useState('99.99');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<'ACTIVE' | 'DRAFT' | 'ARCHIVED'>('ACTIVE');
-  const [initialStock, setInitialStock] = useState('25');
+  const [name, setName] = useState(editingProduct?.name ?? '');
+  const [sku, setSku] = useState(
+    () =>
+      editingProduct?.sku ?? `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+  );
+  const [category, setCategory] = useState(
+    editingProduct?.category ?? 'Electronics',
+  );
+  const [priceUsd, setPriceUsd] = useState(
+    editingProduct ? (editingProduct.price_cents / 100).toFixed(2) : '149.99',
+  );
+  const [description, setDescription] = useState(
+    editingProduct?.description ?? '',
+  );
+  const [status, setStatus] = useState<'ACTIVE' | 'DRAFT' | 'ARCHIVED'>(
+    editingProduct?.status ?? 'ACTIVE',
+  );
+  const [initialStock, setInitialStock] = useState('50');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (editingProduct) {
-      setName(editingProduct.name);
-      setSku(editingProduct.sku);
-      setCategory(editingProduct.category);
-      setPriceUsd((editingProduct.price_cents / 100).toFixed(2));
-      setDescription(editingProduct.description || '');
-      setStatus(editingProduct.status);
-    } else {
-      setName('');
-      setSku(`SKU-${Math.floor(1000 + Math.random() * 9000)}`);
-      setCategory('Electronics');
-      setPriceUsd('149.99');
-      setDescription('');
-      setStatus('ACTIVE');
-      setInitialStock('50');
-    }
-    setError(null);
-  }, [editingProduct, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,8 +89,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       onSaved();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save product');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to save product';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -111,54 +112,89 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #6366f1, #ec4899)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.5rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '1rem',
+          }}
+        >
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #6366f1, #ec4899)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               <Package size={18} color="#ffffff" />
             </div>
             <div>
-              <h2 style={{ fontSize: '1.3rem' }}>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <h2 style={{ fontSize: '1.3rem' }}>
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h2>
+              <div
+                style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}
+              >
                 Product Service (:3002) database record
               </div>
             </div>
           </div>
-          <button className="btn btn-secondary" onClick={onClose} style={{ padding: '0.4rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={onClose}
+            style={{ padding: '0.4rem' }}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1rem',
-            background: 'rgba(244, 63, 94, 0.15)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: '#fb7185',
-            fontSize: '0.85rem',
-            marginBottom: '1.25rem',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1rem',
+              background: 'rgba(244, 63, 94, 0.15)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fb7185',
+              fontSize: '0.85rem',
+              marginBottom: '1.25rem',
+            }}
+          >
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Product Title</label>
+            <label
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                display: 'block',
+                marginBottom: '0.35rem',
+              }}
+            >
+              Product Title
+            </label>
             <input
               type="text"
               required
@@ -178,9 +214,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem',
+            }}
+          >
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>SKU</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                SKU
+              </label>
               <input
                 type="text"
                 required
@@ -201,7 +252,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Category</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Category
+              </label>
               <input
                 type="text"
                 required
@@ -222,9 +282,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: editingProduct ? '1fr 1fr' : '1fr 1fr 1fr', gap: '0.75rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: editingProduct ? '1fr 1fr' : '1fr 1fr 1fr',
+              gap: '0.75rem',
+            }}
+          >
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Price (USD)</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Price (USD)
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -247,10 +322,21 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Status</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Status
+              </label>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) =>
+                  setStatus(e.target.value as 'ACTIVE' | 'DRAFT' | 'ARCHIVED')
+                }
                 style={{
                   width: '100%',
                   padding: '0.65rem 0.85rem',
@@ -270,7 +356,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
             {!editingProduct && (
               <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Initial Stock</label>
+                <label
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    display: 'block',
+                    marginBottom: '0.35rem',
+                  }}
+                >
+                  Initial Stock
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -293,7 +388,16 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Description</label>
+            <label
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                display: 'block',
+                marginBottom: '0.35rem',
+              }}
+            >
+              Description
+            </label>
             <textarea
               rows={3}
               placeholder="High performance studio monitors with ultra-low latency..."
@@ -314,18 +418,35 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.75rem',
+              marginTop: '0.5rem',
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
                   <span>Saving Product...</span>
                 </>
               ) : (
-                <span>{editingProduct ? 'Save Changes' : 'Create Product'}</span>
+                <span>
+                  {editingProduct ? 'Save Changes' : 'Create Product'}
+                </span>
               )}
             </button>
           </div>

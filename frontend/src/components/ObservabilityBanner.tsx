@@ -42,12 +42,14 @@ export const ObservabilityBanner: React.FC = () => {
   ];
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-      gap: '1rem',
-      marginBottom: '2.5rem',
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2.5rem',
+      }}
+    >
       {tools.map((tool) => {
         const Icon = tool.icon;
         return (
@@ -68,27 +70,55 @@ export const ObservabilityBanner: React.FC = () => {
               overflow: 'hidden',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: `rgba(255, 255, 255, 0.05)`,
-                border: `1px solid rgba(255, 255, 255, 0.1)`,
+            <div
+              style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                marginBottom: '0.75rem',
+              }}
+            >
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: `rgba(255, 255, 255, 0.05)`,
+                  border: `1px solid rgba(255, 255, 255, 0.1)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Icon size={20} color={tool.color} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span className="badge badge-indigo" style={{ fontSize: '0.65rem' }}>{tool.badge}</span>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <span
+                  className="badge badge-indigo"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  {tool.badge}
+                </span>
                 <ExternalLink size={14} color="var(--text-muted)" />
               </div>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem' }}>{tool.name}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{tool.desc}</div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  marginBottom: '0.2rem',
+                }}
+              >
+                {tool.name}
+              </div>
+              <div
+                style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
+              >
+                {tool.desc}
+              </div>
             </div>
           </a>
         );

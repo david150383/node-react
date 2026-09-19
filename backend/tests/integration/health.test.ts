@@ -16,7 +16,7 @@ describe("Auth Service Health Integration Tests", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe("alive");
-    expect(res.body.data.service).toBe("auth-service");;
+    expect(res.body.data.service).toBe("auth-service");
   });
 
   it("GET /health should return 200 when db is healthy", async () => {

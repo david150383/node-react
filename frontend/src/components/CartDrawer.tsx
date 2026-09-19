@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { X, Trash2, Plus, Minus, ShieldAlert, Sparkles, Loader2, CreditCard } from 'lucide-react';
+import {
+  X,
+  Trash2,
+  Plus,
+  Minus,
+  ShieldAlert,
+  Sparkles,
+  Loader2,
+  CreditCard,
+} from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { ordersApi } from '../api/orders.api.ts';
@@ -10,8 +19,20 @@ interface CartDrawerProps {
   onOpenAuth: () => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAuth }) => {
-  const { items, cartCount, cartTotalCents, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, clearCart } = useCart();
+export const CartDrawer: React.FC<CartDrawerProps> = ({
+  onOrderPlaced,
+  onOpenAuth,
+}) => {
+  const {
+    items,
+    cartCount,
+    cartTotalCents,
+    isCartOpen,
+    setIsCartOpen,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+  } = useCart();
   const { isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
@@ -35,7 +56,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
       const orderItems = items.map((item, index) => ({
         productId: item.product.id,
         quantity: Math.max(1, Math.floor(Number(item.quantity))),
-        unitPriceCents: simulateDecline && index === 0 ? 999999 : Math.max(0, Math.floor(Number(item.product.price_cents))),
+        unitPriceCents:
+          simulateDecline && index === 0
+            ? 999999
+            : Math.max(0, Math.floor(Number(item.product.price_cents))),
       }));
 
       const res = await ordersApi.createOrder({
@@ -46,8 +70,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
       clearCart();
       setIsCartOpen(false);
       onOrderPlaced(res.data.id);
-    } catch (err: any) {
-      setError(err.message || 'Failed to initiate order saga');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to initiate order saga';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -75,39 +101,73 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.5rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '1rem',
+          }}
+        >
           <div>
             <h2 style={{ fontSize: '1.35rem' }}>Your Shopping Cart</h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               {cartCount} {cartCount === 1 ? 'item' : 'items'} in cart
             </div>
           </div>
-          <button className="btn btn-secondary" onClick={() => setIsCartOpen(false)} style={{ padding: '0.5rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsCartOpen(false)}
+            style={{ padding: '0.5rem' }}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div style={{
-            padding: '0.85rem 1rem',
-            background: 'rgba(244, 63, 94, 0.15)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: '#fb7185',
-            fontSize: '0.85rem',
-            marginBottom: '1rem',
-          }}>
+          <div
+            style={{
+              padding: '0.85rem 1rem',
+              background: 'rgba(244, 63, 94, 0.15)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fb7185',
+              fontSize: '0.85rem',
+              marginBottom: '1rem',
+            }}
+          >
             {error}
           </div>
         )}
 
         {/* Items List */}
-        <div style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem' }}>
+        <div
+          style={{
+            flexGrow: 1,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            paddingRight: '0.5rem',
+          }}
+        >
           {items.length === 0 ? (
-            <div style={{ textAlign: 'center', margin: 'auto 0', color: 'var(--text-muted)' }}>
-              <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Your cart is empty</p>
-              <p style={{ fontSize: '0.85rem' }}>Add items from the product catalog to begin</p>
+            <div
+              style={{
+                textAlign: 'center',
+                margin: 'auto 0',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                Your cart is empty
+              </p>
+              <p style={{ fontSize: '0.85rem' }}>
+                Add items from the product catalog to begin
+              </p>
             </div>
           ) : (
             items.map((item) => (
@@ -124,28 +184,69 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
                 }}
               >
                 <div style={{ flexGrow: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.2rem' }}>{item.product.name}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      marginBottom: '0.2rem',
+                    }}
+                  >
+                    {item.product.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.85rem',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
                     ${(item.product.price_cents / 100).toFixed(2)} each
                   </div>
                 </div>
 
                 {/* Quantity Controls */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0, 0, 0, 0.3)', padding: '0.25rem', borderRadius: 'var(--radius-sm)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    padding: '0.25rem',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
                   <button
                     className="btn btn-secondary"
-                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                    style={{ padding: '0.2rem', minWidth: '24px', height: '24px' }}
+                    onClick={() =>
+                      updateQuantity(item.product.id, item.quantity - 1)
+                    }
+                    style={{
+                      padding: '0.2rem',
+                      minWidth: '24px',
+                      height: '24px',
+                    }}
                   >
                     <Minus size={12} />
                   </button>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, minWidth: '20px', textAlign: 'center' }}>
+                  <span
+                    style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      minWidth: '20px',
+                      textAlign: 'center',
+                    }}
+                  >
                     {item.quantity}
                   </span>
                   <button
                     className="btn btn-secondary"
-                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                    style={{ padding: '0.2rem', minWidth: '24px', height: '24px' }}
+                    onClick={() =>
+                      updateQuantity(item.product.id, item.quantity + 1)
+                    }
+                    style={{
+                      padding: '0.2rem',
+                      minWidth: '24px',
+                      height: '24px',
+                    }}
                   >
                     <Plus size={12} />
                   </button>
@@ -167,18 +268,54 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
 
         {/* Footer Summary & Actions */}
         {items.length > 0 && (
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', marginTop: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <div
+            style={{
+              borderTop: '1px solid var(--border-subtle)',
+              paddingTop: '1.25rem',
+              marginTop: '1rem',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '0.5rem',
+                fontSize: '0.9rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
               <span>Subtotal</span>
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formattedSubtotal}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {formattedSubtotal}
+              </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '1rem',
+                fontSize: '0.9rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
               <span>Shipping & Handling</span>
               <span style={{ color: '#10b981', fontWeight: 600 }}>FREE</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', fontSize: '1.2rem', fontWeight: 800 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '1.5rem',
+                fontSize: '1.2rem',
+                fontWeight: 800,
+              }}
+            >
               <span>Total</span>
-              <span style={{ color: '#ffffff', fontFamily: 'var(--font-display)' }}>{formattedSubtotal}</span>
+              <span
+                style={{ color: '#ffffff', fontFamily: 'var(--font-display)' }}
+              >
+                {formattedSubtotal}
+              </span>
             </div>
 
             {!isAuthenticated ? (
@@ -190,7 +327,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
                 Sign In to Checkout
               </button>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
                 {/* Stripe Checkout */}
                 <button
                   className="btn btn-primary"
@@ -212,7 +355,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
                   className="btn btn-secondary"
                   onClick={() => handleCheckout(false)}
                   disabled={isSubmitting}
-                  style={{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem',
+                    fontSize: '0.85rem',
+                  }}
                 >
                   {isSubmitting ? (
                     <>
@@ -232,7 +379,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderPlaced, onOpenAut
                   className="btn btn-danger"
                   onClick={() => handleCheckout(true)}
                   disabled={isSubmitting}
-                  style={{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem',
+                    fontSize: '0.85rem',
+                  }}
                   title="Triggers card decline to visualize compensating rollback"
                 >
                   <ShieldAlert size={15} />

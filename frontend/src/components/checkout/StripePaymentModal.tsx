@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { X, CreditCard, Lock, AlertCircle, Loader2, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
+import {
+  X,
+  CreditCard,
+  Lock,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  CheckCircle2,
+  ShieldCheck,
+} from 'lucide-react';
 import { useCart } from '../../context/CartContext.tsx';
 import { ordersApi } from '../../api/orders.api.ts';
 import { paymentsApi } from '../../api/payments.api.ts';
@@ -34,9 +43,11 @@ function isValidLuhn(numStr: string): boolean {
 function getCardBrand(numStr: string): { name: string; color: string } {
   const clean = numStr.replace(/\D/g, '');
   if (clean.startsWith('4')) return { name: 'VISA', color: '#60a5fa' };
-  if (/^(5[1-5]|2[2-7])/.test(clean)) return { name: 'MASTERCARD', color: '#f97316' };
+  if (/^(5[1-5]|2[2-7])/.test(clean))
+    return { name: 'MASTERCARD', color: '#f97316' };
   if (/^3[47]/.test(clean)) return { name: 'AMEX', color: '#38bdf8' };
-  if (/^(6011|65|64[4-9])/.test(clean)) return { name: 'DISCOVER', color: '#ec4899' };
+  if (/^(6011|65|64[4-9])/.test(clean))
+    return { name: 'DISCOVER', color: '#ec4899' };
   return { name: 'CARD', color: '#94a3b8' };
 }
 
@@ -60,7 +71,10 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
 
   const cleanCardDigits = cardNumber.replace(/\D/g, '');
   const brand = useMemo(() => getCardBrand(cleanCardDigits), [cleanCardDigits]);
-  const isLuhnValid = useMemo(() => isValidLuhn(cleanCardDigits), [cleanCardDigits]);
+  const isLuhnValid = useMemo(
+    () => isValidLuhn(cleanCardDigits),
+    [cleanCardDigits],
+  );
 
   if (!isOpen) return null;
 
@@ -112,19 +126,28 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
     setError(null);
 
     try {
-      const isDeclineCard = cleanCardDigits === '4000000000000002' || cleanCardDigits.endsWith('0002');
-      const is3DSecureCard = cleanCardDigits === '4000000000000069' || cleanCardDigits.endsWith('0069');
+      const isDeclineCard =
+        cleanCardDigits === '4000000000000002' ||
+        cleanCardDigits.endsWith('0002');
+      const is3DSecureCard =
+        cleanCardDigits === '4000000000000069' ||
+        cleanCardDigits.endsWith('0069');
 
       // 1. Handshake with Payment Service Stripe PaymentIntent API
       try {
         await paymentsApi.createPaymentIntent(cartTotalCents, 'USD');
       } catch (intentErr) {
-        console.warn('[Stripe Checkout] Pre-intent handshake warning:', intentErr);
+        console.warn(
+          '[Stripe Checkout] Pre-intent handshake warning:',
+          intentErr,
+        );
       }
 
       if (is3DSecureCard) {
         await new Promise((resolve) => setTimeout(resolve, 800));
-        setError('Stripe 3D Secure 2.0 Challenge: Authentication failed by cardholder issuing bank.');
+        setError(
+          'Stripe 3D Secure 2.0 Challenge: Authentication failed by cardholder issuing bank.',
+        );
         setIsProcessing(false);
         setStatusMessage(null);
         return;
@@ -137,7 +160,17 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         productId: item.product.id,
         quantity: Math.max(1, Math.floor(Number(item.quantity))),
         // Declining card sets unitPrice to 999999 to trigger external card_declined flow
-        unitPriceCents: isDeclineCard && index === 0 ? 999999 : Math.max(0, Math.floor(Number(item.product.priceCents ?? item.product.price_cents ?? 0))),
+        unitPriceCents:
+          isDeclineCard && index === 0
+            ? 999999
+            : Math.max(
+                0,
+                Math.floor(
+                  Number(
+                    item.product.priceCents ?? item.product.price_cents ?? 0,
+                  ),
+                ),
+              ),
       }));
 
       const res = await ordersApi.createOrder({
@@ -153,18 +186,24 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           orderId,
           amountCents: cartTotalCents,
           currency: 'USD',
-          paymentMethodId: isDeclineCard ? 'pm_card_chargeDeclined' : 'pm_card_visa',
+          paymentMethodId: isDeclineCard
+            ? 'pm_card_chargeDeclined'
+            : 'pm_card_visa',
           idempotencyKey: crypto.randomUUID(),
         });
-      } catch (payErr: any) {
+      } catch (payErr) {
         console.warn('[Stripe Checkout] Payment dispatched:', payErr);
       }
 
       clearCart();
       onClose();
       onOrderPlaced(orderId);
-    } catch (err: any) {
-      setError(err.message || 'Payment processing failed. Please try again.');
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Payment processing failed. Please try again.';
+      setError(message);
     } finally {
       setIsProcessing(false);
       setStatusMessage(null);
@@ -185,66 +224,130 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)',
-            }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.25rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '0.85rem',
+          }}
+        >
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}
+          >
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(99, 102, 241, 0.5)',
+              }}
+            >
               <CreditCard size={20} color="#ffffff" />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Stripe Card Checkout</h2>
-                <span className="badge badge-indigo" style={{ fontSize: '0.7rem' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
+                  Stripe Card Checkout
+                </h2>
+                <span
+                  className="badge badge-indigo"
+                  style={{ fontSize: '0.7rem' }}
+                >
                   <Lock size={10} /> 256-Bit SSL
                 </span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <div
+                style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}
+              >
                 Powered by Stripe Node.js SDK &amp; Payment Service (:3005)
               </div>
             </div>
           </div>
-          <button className="btn btn-secondary" onClick={onClose} style={{ padding: '0.4rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={onClose}
+            style={{ padding: '0.4rem' }}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Amount Banner */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.85rem 1.25rem',
-          background: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.25)',
-          borderRadius: 'var(--radius-md)',
-          marginBottom: '1.25rem',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.85rem 1.25rem',
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.25rem',
+          }}
+        >
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total Charge Amount</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc' }}>
-              ${formattedTotal} <span style={{ fontSize: '0.85rem', color: '#a5b4fc' }}>USD</span>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Total Charge Amount
+            </div>
+            <div
+              style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc' }}
+            >
+              ${formattedTotal}{' '}
+              <span style={{ fontSize: '0.85rem', color: '#a5b4fc' }}>USD</span>
             </div>
           </div>
-          <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            <div>{items.length} line {items.length === 1 ? 'item' : 'items'}</div>
-            <div style={{ color: isLuhnValid ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', justifyContent: 'flex-end' }}>
-              {isLuhnValid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-              <span>{isLuhnValid ? 'Luhn Verified' : 'Checking Checksum...'}</span>
+          <div
+            style={{
+              textAlign: 'right',
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <div>
+              {items.length} line {items.length === 1 ? 'item' : 'items'}
+            </div>
+            <div
+              style={{
+                color: isLuhnValid ? '#10b981' : '#f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                justifyContent: 'flex-end',
+              }}
+            >
+              {isLuhnValid ? (
+                <CheckCircle2 size={12} />
+              ) : (
+                <AlertCircle size={12} />
+              )}
+              <span>
+                {isLuhnValid ? 'Luhn Verified' : 'Checking Checksum...'}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Test Cards Quick Bar */}
         <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              marginBottom: '0.5rem',
+            }}
+          >
             <Sparkles size={12} color="#6366f1" />
             <span>Select a Stripe Test Card Preset:</span>
           </div>
@@ -299,27 +402,39 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
 
         {/* Error Alert */}
         {error && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem',
-            background: 'rgba(244, 63, 94, 0.15)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            color: '#fb7185',
-            fontSize: '0.85rem',
-            marginBottom: '1rem',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem',
+              background: 'rgba(244, 63, 94, 0.15)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fb7185',
+              fontSize: '0.85rem',
+              marginBottom: '1rem',
+            }}
+          >
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}
 
         {/* Card Input Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        >
           <div>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+            <label
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                display: 'block',
+                marginBottom: '0.35rem',
+              }}
+            >
               Cardholder Name
             </label>
             <input
@@ -342,12 +457,26 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
           </div>
 
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.35rem',
+              }}
+            >
+              <label
+                style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
+              >
                 Card Number
               </label>
               {cleanCardDigits.length > 0 && (
-                <span style={{ fontSize: '0.75rem', color: isLuhnValid ? '#10b981' : '#f59e0b' }}>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: isLuhnValid ? '#10b981' : '#f59e0b',
+                  }}
+                >
                   {isLuhnValid ? '✓ Valid Luhn' : '• Incomplete / Invalid'}
                 </span>
               )}
@@ -373,24 +502,41 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
                   outline: 'none',
                 }}
               />
-              <span style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: brand.color,
-                letterSpacing: '0.05em',
-              }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: brand.color,
+                  letterSpacing: '0.05em',
+                }}
+              >
                 {brand.name}
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '0.75rem',
+            }}
+          >
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Expires</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Expires
+              </label>
               <input
                 type="text"
                 required
@@ -413,13 +559,24 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>CVC</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                CVC
+              </label>
               <input
                 type="text"
                 required
                 maxLength={4}
                 value={cardCvc}
-                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                onChange={(e) =>
+                  setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))
+                }
                 placeholder="123"
                 style={{
                   width: '100%',
@@ -436,7 +593,16 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>Postal Code</label>
+              <label
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  display: 'block',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Postal Code
+              </label>
               <input
                 type="text"
                 required
@@ -459,7 +625,14 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
             </div>
           </div>
 
-          <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div
+            style={{
+              marginTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+            }}
+          >
             <button
               type="submit"
               className="btn btn-primary"
@@ -487,9 +660,22 @@ export const StripePaymentModal: React.FC<StripePaymentModalProps> = ({
                 </>
               )}
             </button>
-            <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+              }}
+            >
               <ShieldCheck size={14} color="#10b981" />
-              <span>Powered by Stripe • Distributed Saga with Compensating Rollback Guarantee</span>
+              <span>
+                Powered by Stripe • Distributed Saga with Compensating Rollback
+                Guarantee
+              </span>
             </div>
           </div>
         </form>

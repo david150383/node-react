@@ -28,25 +28,59 @@ export interface ProductsPageResponse {
   };
 }
 
-export function mapProduct(p: any): Product {
+export interface RawProductsResponse {
+  data?:
+    | {
+        products?: Record<string, unknown>[];
+      }
+    | Record<string, unknown>[];
+  meta?: {
+    limit?: number;
+    offset?: number;
+    hasNextPage?: boolean;
+    has_more?: boolean;
+    nextCursor?: string | null;
+    next_cursor?: string | null;
+    total?: number;
+  };
+}
+
+export interface RawProductResponse {
+  message?: string;
+  data?:
+    | {
+        product?: Record<string, unknown>;
+      }
+    | Record<string, unknown>;
+}
+
+export function mapProduct(p: Record<string, unknown>): Product {
   const price = Number(p?.priceCents ?? p?.price_cents ?? 0);
-  const created = p?.createdAt ?? p?.created_at ?? new Date().toISOString();
-  const updated = p?.updatedAt ?? p?.updated_at ?? new Date().toISOString();
+  const created = (p?.createdAt ??
+    p?.created_at ??
+    new Date().toISOString()) as string | number | Date;
+  const updated = (p?.updatedAt ??
+    p?.updated_at ??
+    new Date().toISOString()) as string | number | Date;
   return {
-    id: p?.id ?? '',
-    sku: p?.sku ?? '',
-    name: p?.name ?? '',
-    slug: p?.slug ?? '',
-    description: p?.description ?? '',
+    id: String(p?.id ?? ''),
+    sku: String(p?.sku ?? ''),
+    name: String(p?.name ?? ''),
+    slug: String(p?.slug ?? ''),
+    description: String(p?.description ?? ''),
     price_cents: price,
     priceCents: price,
-    currency: p?.currency ?? 'USD',
-    category: p?.category ?? 'General',
-    status: p?.status ?? 'ACTIVE',
-    created_at: typeof created === 'string' ? created : new Date(created).toISOString(),
-    createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
-    updated_at: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
-    updatedAt: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    currency: String(p?.currency ?? 'USD'),
+    category: String(p?.category ?? 'General'),
+    status: (p?.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED') ?? 'ACTIVE',
+    created_at:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    createdAt:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    updated_at:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    updatedAt:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
   };
 }
 
@@ -76,8 +110,12 @@ export const productsApi = {
     if (status && status !== 'ALL') {
       params.set('status', status);
     }
-    const res = await apiClient<any>(`/products?${params.toString()}`);
-    const rawList = res.data?.products || (Array.isArray(res.data) ? res.data : []);
+    const res = await apiClient<RawProductsResponse>(
+      `/products?${params.toString()}`,
+    );
+    const rawList =
+      (res.data && !Array.isArray(res.data) && res.data.products) ||
+      (Array.isArray(res.data) ? res.data : []);
     const meta = res.meta || {};
     return {
       data: rawList.map(mapProduct),
@@ -91,11 +129,12 @@ export const productsApi = {
     };
   },
 
-
   async getProductById(id: string): Promise<{ data: Product }> {
-    const res = await apiClient<any>(`/products/${id}`);
-    const raw = res.data?.product || res.data;
-    return { data: mapProduct(raw) };
+    const res = await apiClient<RawProductResponse>(`/products/${id}`);
+    const raw =
+      (res.data && !Array.isArray(res.data) && 'product' in res.data
+        ? res.data.product
+        : res.data) || {};
+    return { data: mapProduct(raw as Record<string, unknown>) };
   },
 };
-

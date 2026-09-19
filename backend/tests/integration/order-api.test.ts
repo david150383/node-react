@@ -14,26 +14,22 @@ describe("Order API Integration Tests", () => {
 
   beforeAll(async () => {
     // Create a user for the order tests
-    const registerRes = await request(app)
-      .post("/auth/register")
-      .send({
-        email: testEmail,
-        password: testPassword,
-        first_name: "Order",
-        last_name: "Integration",
-        role: "CUSTOMER",
-      });
+    const registerRes = await request(app).post("/auth/register").send({
+      email: testEmail,
+      password: testPassword,
+      first_name: "Order",
+      last_name: "Integration",
+      role: "CUSTOMER",
+    });
 
     expect(registerRes.status).toBe(201);
 
     // Login and get access token
-    const loginRes = await request(app)
-      .post("/auth/login")
-      .send({
-        email: testEmail,
-        password: testPassword,
-        client_type: "WEB",
-      });
+    const loginRes = await request(app).post("/auth/login").send({
+      email: testEmail,
+      password: testPassword,
+      client_type: "WEB",
+    });
 
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.data.accessToken).toBeDefined();
@@ -61,11 +57,9 @@ describe("Order API Integration Tests", () => {
   });
 
   it("POST /orders should reject unauthenticated requests with 401", async () => {
-    const res = await request(app)
-      .post("/orders")
-      .send({
-        items: [],
-      });
+    const res = await request(app).post("/orders").send({
+      items: [],
+    });
     expect(res.status).toBe(401);
   });
 

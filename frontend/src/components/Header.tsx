@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Bell, User, Activity, LogOut, ShieldCheck } from 'lucide-react';
+import {
+  ShoppingBag,
+  Bell,
+  User,
+  Activity,
+  LogOut,
+  ShieldCheck,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCart } from '../context/CartContext.tsx';
 import { healthApi, CompositeHealthResponse } from '../api/health.api.ts';
@@ -42,56 +49,68 @@ export const Header: React.FC<HeaderProps> = ({
   const isHealthy = health?.status === 'READY';
 
   return (
-    <header style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      background: 'rgba(10, 13, 20, 0.85)',
-      backdropFilter: 'blur(16px)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      padding: '0.85rem 2rem',
-    }}>
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: 'rgba(10, 13, 20, 0.85)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '0.85rem 2rem',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1440px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         {/* Brand Logo & Cluster Health */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 16px rgba(99, 102, 241, 0.5)',
-            }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 16px rgba(99, 102, 241, 0.5)',
+              }}
+            >
               <Activity size={20} color="#ffffff" />
             </div>
             <div>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                background: 'linear-gradient(to right, #ffffff, #94a3b8)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  background: 'linear-gradient(to right, #ffffff, #94a3b8)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
                 APEX
               </span>
-              <span style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#6366f1',
-                marginLeft: '4px',
-                letterSpacing: '0.1em',
-              }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#6366f1',
+                  marginLeft: '4px',
+                  letterSpacing: '0.1em',
+                }}
+              >
                 MICROSERVICES
               </span>
             </div>
@@ -100,7 +119,12 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Composite Health Indicator */}
           <div
             className={`badge ${isHealthy ? 'badge-emerald' : 'badge-amber'}`}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'default' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'default',
+            }}
             title={`Status: ${health?.status || 'CONNECTING'} across 7 microservices + DBs + Redis + AWS SNS/SQS`}
           >
             <div className={`pulse-dot ${isHealthy ? 'ready' : ''}`} />
@@ -111,12 +135,17 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {/* Admin / Store Switcher - Visible ONLY to authorized ADMIN users */}
-          {isAuthenticated && user?.role === 'ADMIN' && (
-            activeView === 'STORE' ? (
+          {isAuthenticated &&
+            user?.role === 'ADMIN' &&
+            (activeView === 'STORE' ? (
               <button
                 className="btn btn-secondary"
                 onClick={() => onToggleView('ADMIN')}
-                style={{ fontSize: '0.85rem', padding: '0.5rem 0.9rem', borderColor: 'rgba(236, 72, 153, 0.4)' }}
+                style={{
+                  fontSize: '0.85rem',
+                  padding: '0.5rem 0.9rem',
+                  borderColor: 'rgba(236, 72, 153, 0.4)',
+                }}
                 title="Switch to Admin Operations Console"
               >
                 <ShieldCheck size={16} color="#ec4899" />
@@ -132,8 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <ShoppingBag size={16} />
                 <span>Storefront</span>
               </button>
-            )
-          )}
+            ))}
 
           {/* Saga History Trigger */}
           <button
@@ -164,22 +192,24 @@ export const Header: React.FC<HeaderProps> = ({
             <ShoppingBag size={18} />
             <span>Cart</span>
             {cartCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-6px',
-                background: '#ec4899',
-                color: '#ffffff',
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 8px rgba(236, 72, 153, 0.8)',
-              }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  background: '#ec4899',
+                  color: '#ffffff',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 8px rgba(236, 72, 153, 0.8)',
+                }}
+              >
                 {cartCount}
               </span>
             )}
@@ -193,17 +223,19 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                }}>
+                <div
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
                   {user.first_name[0]}
                 </div>
                 <span>{user.first_name}</span>
@@ -224,10 +256,27 @@ export const Header: React.FC<HeaderProps> = ({
                     gap: '0.5rem',
                   }}
                 >
-                  <div style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{user.first_name} {user.last_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
-                    <div className="badge badge-indigo" style={{ marginTop: '0.4rem', fontSize: '0.65rem' }}>
+                  <div
+                    style={{
+                      padding: '0.5rem',
+                      borderBottom: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                      {user.first_name} {user.last_name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {user.email}
+                    </div>
+                    <div
+                      className="badge badge-indigo"
+                      style={{ marginTop: '0.4rem', fontSize: '0.65rem' }}
+                    >
                       Role: {user.role}
                     </div>
                   </div>
@@ -235,13 +284,23 @@ export const Header: React.FC<HeaderProps> = ({
                     <button
                       className="btn btn-secondary"
                       onClick={() => {
-                        onToggleView(activeView === 'ADMIN' ? 'STORE' : 'ADMIN');
+                        onToggleView(
+                          activeView === 'ADMIN' ? 'STORE' : 'ADMIN',
+                        );
                         setUserDropdownOpen(false);
                       }}
-                      style={{ justifyContent: 'flex-start', width: '100%', borderColor: 'rgba(236, 72, 153, 0.3)' }}
+                      style={{
+                        justifyContent: 'flex-start',
+                        width: '100%',
+                        borderColor: 'rgba(236, 72, 153, 0.3)',
+                      }}
                     >
                       <ShieldCheck size={16} color="#ec4899" />
-                      <span>{activeView === 'ADMIN' ? 'Storefront View' : 'Admin Operations'}</span>
+                      <span>
+                        {activeView === 'ADMIN'
+                          ? 'Storefront View'
+                          : 'Admin Operations'}
+                      </span>
                     </button>
                   )}
                   <button
@@ -251,7 +310,11 @@ export const Header: React.FC<HeaderProps> = ({
                       onToggleView('STORE');
                       setUserDropdownOpen(false);
                     }}
-                    style={{ justifyContent: 'flex-start', color: '#f43f5e', width: '100%' }}
+                    style={{
+                      justifyContent: 'flex-start',
+                      color: '#f43f5e',
+                      width: '100%',
+                    }}
                   >
                     <LogOut size={16} />
                     <span>Sign Out</span>

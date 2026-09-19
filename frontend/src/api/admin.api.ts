@@ -1,6 +1,6 @@
 import { apiClient } from './client.ts';
-import { Product, mapProduct } from './products.api.ts';
-import { Order, mapOrder } from './orders.api.ts';
+import { Product, mapProduct, RawProductResponse } from './products.api.ts';
+import { Order, mapOrder, RawOrderResponse } from './orders.api.ts';
 
 export interface CreateProductInput {
   name: string;
@@ -63,36 +63,83 @@ export interface AdminNotification {
   subject: string;
   body: string;
   status: 'DELIVERED' | 'FAILED' | 'PENDING';
-  deliveryMetadata?: Record<string, any>;
+  deliveryMetadata?: Record<string, unknown>;
   error?: string | null;
   createdAt: string;
   deliveredAt?: string | null;
 }
 
-function mapInventory(inv: any): InventoryRecord {
-  const prodId = inv?.productId || inv?.product_id || '';
-  const available = Number(inv?.availableQuantity ?? inv?.available_quantity ?? 0);
+export interface RawInventoryResponse {
+  message?: string;
+  data?: {
+    inventory?: Record<string, unknown>;
+  } & Record<string, unknown>;
+}
+
+export interface RawInventoryListResponse {
+  data?:
+    | {
+        items?: Record<string, unknown>[];
+      }
+    | Record<string, unknown>[];
+}
+
+export interface RawUsersResponse {
+  data?:
+    | {
+        users?: Record<string, unknown>[];
+      }
+    | Record<string, unknown>[];
+}
+
+export interface RawNotificationsResponse {
+  data?: AdminNotification[];
+  meta?: {
+    total?: number;
+  };
+}
+
+export interface RawNotificationResponse {
+  message?: string;
+  data: AdminNotification;
+}
+
+function mapInventory(inv: Record<string, unknown>): InventoryRecord {
+  const prodId = String(inv?.productId || inv?.product_id || '');
+  const available = Number(
+    inv?.availableQuantity ?? inv?.available_quantity ?? 0,
+  );
   const reserved = Number(inv?.reservedQuantity ?? inv?.reserved_quantity ?? 0);
-  const created = inv?.createdAt || inv?.created_at || new Date().toISOString();
-  const updated = inv?.updatedAt || inv?.updated_at || new Date().toISOString();
+  const created = (inv?.createdAt ||
+    inv?.created_at ||
+    new Date().toISOString()) as string | number | Date;
+  const updated = (inv?.updatedAt ||
+    inv?.updated_at ||
+    new Date().toISOString()) as string | number | Date;
 
   return {
-    id: inv?.id || '',
+    id: String(inv?.id || ''),
     product_id: prodId,
     productId: prodId,
     available_quantity: available,
     availableQuantity: available,
     reserved_quantity: reserved,
     reservedQuantity: reserved,
-    created_at: typeof created === 'string' ? created : new Date(created).toISOString(),
-    createdAt: typeof created === 'string' ? created : new Date(created).toISOString(),
-    updated_at: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
-    updatedAt: typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    created_at:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    createdAt:
+      typeof created === 'string' ? created : new Date(created).toISOString(),
+    updated_at:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
+    updatedAt:
+      typeof updated === 'string' ? updated : new Date(updated).toISOString(),
   };
 }
 
 export const adminApi = {
-  async createProduct(data: CreateProductInput): Promise<{ message: string; data: Product }> {
+  async createProduct(
+    data: CreateProductInput,
+  ): Promise<{ message: string; data: Product }> {
     const payload = {
       sku: data.sku,
       name: data.name,
@@ -103,34 +150,43 @@ export const adminApi = {
       status: data.status || 'ACTIVE',
     };
 
-    const res = await apiClient<any>('/products', {
+    const res = await apiClient<RawProductResponse>('/products', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
 
-    const raw = res.data?.product || res.data;
+    const raw =
+      (res.data && !Array.isArray(res.data) && 'product' in res.data
+        ? res.data.product
+        : res.data) || {};
     return {
       message: res.message || 'Product created successfully',
-      data: mapProduct(raw),
+      data: mapProduct(raw as Record<string, unknown>),
     };
   },
 
-  async updateProduct(id: string, data: UpdateProductInput): Promise<{ message: string; data: Product }> {
-    const payload: any = { ...data };
+  async updateProduct(
+    id: string,
+    data: UpdateProductInput,
+  ): Promise<{ message: string; data: Product }> {
+    const payload: Record<string, unknown> = { ...data };
     if (data.price_cents !== undefined) {
       payload.priceCents = data.price_cents;
       delete payload.price_cents;
     }
 
-    const res = await apiClient<any>(`/products/${id}`, {
+    const res = await apiClient<RawProductResponse>(`/products/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
 
-    const raw = res.data?.product || res.data;
+    const raw =
+      (res.data && !Array.isArray(res.data) && 'product' in res.data
+        ? res.data.product
+        : res.data) || {};
     return {
       message: res.message || 'Product updated successfully',
-      data: mapProduct(raw),
+      data: mapProduct(raw as Record<string, unknown>),
     };
   },
 
@@ -141,22 +197,31 @@ export const adminApi = {
     return { message: 'Product deleted successfully' };
   },
 
-  async restockInventory(productId: string, quantity: number): Promise<{ message: string; data: any }> {
+  async restockInventory(
+    productId: string,
+    quantity: number,
+  ): Promise<{ message: string; data: unknown }> {
     try {
-      const res = await apiClient<any>(`/inventory/${productId}/adjust`, {
-        method: 'POST',
-        body: JSON.stringify({ delta: quantity }),
-      });
+      const res = await apiClient<RawInventoryResponse>(
+        `/inventory/${productId}/adjust`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ delta: quantity }),
+        },
+      );
       return {
         message: res.message || 'Inventory adjusted successfully',
         data: res.data?.inventory || res.data,
       };
     } catch {
       // Fallback: If row does not exist yet, seed via /stock endpoint
-      const res = await apiClient<any>(`/inventory/${productId}/stock`, {
-        method: 'POST',
-        body: JSON.stringify({ availableQuantity: quantity }),
-      });
+      const res = await apiClient<RawInventoryResponse>(
+        `/inventory/${productId}/stock`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ availableQuantity: quantity }),
+        },
+      );
       return {
         message: res.message || 'Stock initialized successfully',
         data: res.data?.inventory || res.data,
@@ -165,23 +230,33 @@ export const adminApi = {
   },
 
   async getProductStock(productId: string): Promise<{ data: InventoryStock }> {
-    const res = await apiClient<any>(`/inventory/${productId}`);
-    const raw = res.data?.inventory || res.data;
+    const res = await apiClient<RawInventoryResponse>(
+      `/inventory/${productId}`,
+    );
+    const raw = (res.data?.inventory || res.data) as
+      Record<string, unknown> | undefined;
     return {
       data: {
-        productId: raw?.productId || productId,
-        availableQuantity: raw?.availableQuantity ?? 0,
-        reservedQuantity: raw?.reservedQuantity ?? 0,
-        totalQuantity: raw?.totalQuantity,
+        productId: String(raw?.productId || productId),
+        availableQuantity: Number(raw?.availableQuantity ?? 0),
+        reservedQuantity: Number(raw?.reservedQuantity ?? 0),
+        totalQuantity:
+          raw?.totalQuantity !== undefined
+            ? Number(raw.totalQuantity)
+            : undefined,
       },
     };
   },
 
   async listAllInventory(): Promise<{ data: InventoryRecord[] }> {
-    const res = await apiClient<any>('/inventory?limit=100');
-    const rawItems = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+    const res = await apiClient<RawInventoryListResponse>(
+      '/inventory?limit=100',
+    );
+    const rawItems =
+      (res.data && !Array.isArray(res.data) && res.data.items) ||
+      (Array.isArray(res.data) ? res.data : []);
     return {
-      data: rawItems.map(mapInventory),
+      data: (rawItems as Record<string, unknown>[]).map(mapInventory),
     };
   },
 
@@ -191,25 +266,37 @@ export const adminApi = {
     if (status && status !== 'ALL') {
       params.set('status', status);
     }
-    const res = await apiClient<any>(`/orders?${params.toString()}`);
-    const rawOrders = res.data?.orders || (Array.isArray(res.data) ? res.data : []);
-    return { data: rawOrders.map(mapOrder) };
+    const res = await apiClient<RawOrderResponse>(
+      `/orders?${params.toString()}`,
+    );
+    const rawOrders =
+      (res.data && !Array.isArray(res.data) && res.data.orders) ||
+      (Array.isArray(res.data) ? res.data : []);
+    return { data: (rawOrders as Record<string, unknown>[]).map(mapOrder) };
   },
 
   async listUsers(limit = 50): Promise<{ data: AdminUser[] }> {
     try {
-      const res = await apiClient<any>(`/auth/users?limit=${limit}`);
-      const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
+      const res = await apiClient<RawUsersResponse>(
+        `/auth/users?limit=${limit}`,
+      );
+      const rawUsers =
+        (res.data && !Array.isArray(res.data) && res.data.users) ||
+        (Array.isArray(res.data) ? res.data : []);
       return {
-        data: rawUsers.map((u: any) => ({
-          id: u.id,
-          email: u.email,
-          first_name: u.firstName || u.first_name || '',
-          last_name: u.lastName || u.last_name || '',
-          role: u.role || 'CUSTOMER',
-          is_active: u.isActive ?? u.is_active ?? true,
-          created_at: u.createdAt || u.created_at || new Date().toISOString(),
-          updated_at: u.updatedAt || u.updated_at || new Date().toISOString(),
+        data: (rawUsers as Record<string, unknown>[]).map((u) => ({
+          id: String(u.id ?? ''),
+          email: String(u.email ?? ''),
+          first_name: String(u.firstName || u.first_name || ''),
+          last_name: String(u.lastName || u.last_name || ''),
+          role: (u.role as 'CUSTOMER' | 'ADMIN') || 'CUSTOMER',
+          is_active: Boolean(u.isActive ?? u.is_active ?? true),
+          created_at: String(
+            u.createdAt || u.created_at || new Date().toISOString(),
+          ),
+          updated_at: String(
+            u.updatedAt || u.updated_at || new Date().toISOString(),
+          ),
         })),
       };
     } catch {
@@ -240,7 +327,10 @@ export const adminApi = {
     }
   },
 
-  async updateUserRole(userId: string, role: 'CUSTOMER' | 'ADMIN'): Promise<{ message: string; data: AdminUser }> {
+  async updateUserRole(
+    userId: string,
+    role: 'CUSTOMER' | 'ADMIN',
+  ): Promise<{ message: string; data: AdminUser }> {
     return {
       message: 'Role updated successfully',
       data: {
@@ -256,14 +346,21 @@ export const adminApi = {
     };
   },
 
-  async listAllNotifications(filters?: { channel?: string; status?: string; limit?: number }): Promise<{ data: AdminNotification[]; total: number }> {
+  async listAllNotifications(filters?: {
+    channel?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<{ data: AdminNotification[]; total: number }> {
     const params = new URLSearchParams();
-    if (filters?.channel && filters.channel !== 'ALL') params.append('channel', filters.channel);
+    if (filters?.channel && filters.channel !== 'ALL')
+      params.append('channel', filters.channel);
     if (filters?.status) params.append('status', filters.status);
     if (filters?.limit) params.append('limit', String(filters.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
 
-    const res = await apiClient<any>(`/notifications/admin${query}`);
+    const res = await apiClient<RawNotificationsResponse>(
+      `/notifications/admin${query}`,
+    );
     return {
       data: res.data || [],
       total: res.meta?.total ?? res.data?.length ?? 0,
@@ -276,10 +373,13 @@ export const adminApi = {
     subject: string;
     body: string;
   }): Promise<{ message: string; data: AdminNotification }> {
-    const res = await apiClient<any>('/notifications/admin/dispatch', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    const res = await apiClient<RawNotificationResponse>(
+      '/notifications/admin/dispatch',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
     return {
       message: res.message || 'Notification dispatched',
       data: res.data,

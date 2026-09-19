@@ -21,11 +21,22 @@ export interface CompositeHealthResponse {
   };
 }
 
+interface ReadyApiResponse {
+  success?: boolean;
+  status?: string;
+  data?: {
+    status?: string;
+    timestamp?: string;
+    redis?: string;
+  };
+}
+
 export const healthApi = {
   async getCompositeHealth(): Promise<CompositeHealthResponse> {
     try {
-      const res = await apiClient<any>('/health/ready');
-      const isReady = res.data?.status === 'ready' || res.status === 'ready' || res.success;
+      const res = await apiClient<ReadyApiResponse>('/health/ready');
+      const isReady =
+        res.data?.status === 'ready' || res.status === 'ready' || res.success;
 
       return {
         status: isReady ? 'READY' : 'DEGRADED',
