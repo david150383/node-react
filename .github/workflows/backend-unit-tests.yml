@@ -25,4 +25,13 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: react-node
+          # Update these paths if your test environment looks for specific dummy files
+          JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+          JWT_PUBLIC_KEY_PATH: ./keys/public.pem
         run: npm run test
