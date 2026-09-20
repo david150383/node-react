@@ -8,7 +8,7 @@ env:
   NODE_ENV: test
   DB_HOST: localhost
   DB_USER: postgres
-  DB_PASSWORD: postgres
+  DB_PASSWORD: test_password
   DB_NAME: test_db
   # Update these paths if your test environment looks for specific dummy files
   JWT_PRIVATE_KEY_PATH: ./keys/private.pem
@@ -26,7 +26,7 @@ jobs:
       postgres:
         image: postgres:15 # Change to your preferred version (e.g., 14, 16)
         env:
-          POSTGRES_USER: root
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: test_password
           POSTGRES_DB: test_db
         ports:
