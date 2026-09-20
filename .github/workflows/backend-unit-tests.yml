@@ -7,13 +7,13 @@ on:
 env:
   NODE_ENV: test
   DB_HOST: localhost
-  DB_USER: root
+  DB_USER: postgres
   DB_PASSWORD: postgres
   DB_NAME: test_db
   # Update these paths if your test environment looks for specific dummy files
   JWT_PRIVATE_KEY_PATH: ./keys/private.pem
   JWT_PUBLIC_KEY_PATH: ./keys/public.pem
-  
+
 jobs:
   tests:
     name: Run unit tests
