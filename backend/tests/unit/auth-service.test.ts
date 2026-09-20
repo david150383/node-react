@@ -1,4 +1,5 @@
 import { jest } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 import argon2 from "argon2";
 import { AuthService } from "../../src/modules/auth/services/auth.service.js";
 import {

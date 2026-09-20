@@ -30,6 +30,10 @@ if (!parsedEnv.success) {
   for (const issue of parsedEnv.error.issues) {
     console.error(`   ${issue.path.join(".")}: ${issue.message}`);
   }
+  // Avoid killing the process if we are running tests
+  if (process.env.NODE_ENV === "test") {
+    throw new Error("Schema validation failed: " + JSON.stringify(parsedEnv.error.issues));
+  }
   process.exit(1);
 }
 

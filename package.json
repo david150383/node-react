@@ -1,0 +1,35 @@
+{
+  "name": "react-node",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/david150383/node-react#readme",
+  "bugs": {
+    "url": "https://github.com/david150383/node-react/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/david150383/node-react.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix frontend run lint",
+      "npm --prefix frontend run format:check"
+    ],
+    "backend/**/*.{js,ts}": [
+      "npm --prefix backend run lint",
+      "npm --prefix backend run format:check"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1"
+  }
+}
