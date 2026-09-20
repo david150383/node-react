@@ -8,6 +8,14 @@ on:
   workflow_dispatch:
 
 jobs:
+  frontend-vulnerability-check:
+    name: Frontend vulnerability
+    uses: ./.github/workflows/frontend-vulnerability-check.yml
+
+  backend-vulnerability-check:
+    name: Backend vulnerability
+    uses: ./.github/workflows/backend-vulnerability-check.yml
+
   frontend-lint-format-check:
     name: Frontend lint
     uses: ./.github/workflows/frontend-lint-format-check.yml
@@ -30,6 +38,8 @@ jobs:
     name: Pipeline success
     needs:
       [
+        frontend-vulnerability-check,
+        backend-vulnerability-check,
         frontend-lint-format-check,
         backend-lint-format-check,
         frontend-unit-tests,
