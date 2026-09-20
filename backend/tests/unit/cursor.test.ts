@@ -1,3 +1,4 @@
+import { describe, it, expect } from "@jest/globals";
 import { encodeCursor, decodeCursor } from "../../src/shared/utils/cursor.util.js";
 
 describe("Cursor Utility Unit Tests", () => {
