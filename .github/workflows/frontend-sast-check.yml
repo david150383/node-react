@@ -1,0 +1,23 @@
+name: Frontend SAST check
+
+on:
+  workflow_call:
+
+jobs:
+  semgrep-react-check:
+    name: Semgrep React SAST scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Run Semgrep SAST
+        run: npx semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error

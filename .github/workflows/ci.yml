@@ -46,6 +46,8 @@ jobs:
       [
         frontend-vulnerability-check,
         backend-vulnerability-check,
+        frontend-sast-check,
+        backend-sast-check,
         frontend-lint-format-check,
         backend-lint-format-check,
         frontend-unit-tests,
