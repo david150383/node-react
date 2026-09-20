@@ -10,6 +10,22 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    # 1. Spin up a live PostgreSQL container inside the runner
+    services:
+      postgres:
+        image: postgres:15 # Change to your preferred version (e.g., 14, 16)
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Wait until Postgres is healthy and ready to accept connections
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -24,13 +40,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 3. Run your migration script to set up the database tables in ci environment
+      - name: Run database migrations
+        run: npm run migrate
+
       - name: Run unit tests
         env:
           NODE_ENV: test
           DB_HOST: localhost
-          DB_USER: postgres
+          DB_USER: root
           DB_PASSWORD: postgres
-          DB_NAME: react-node
+          DB_NAME: test_db
           # Update these paths if your test environment looks for specific dummy files
           JWT_PRIVATE_KEY_PATH: ./keys/private.pem
           JWT_PUBLIC_KEY_PATH: ./keys/public.pem
