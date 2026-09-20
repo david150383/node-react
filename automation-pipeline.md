@@ -1,4 +1,7 @@
 # The automation pipeline
+Youtube Video : https://www.youtube.com/watch?v=wY5pQOTsGaA&t=24060s
+Course handbook and documentation: https://github.com/ImadSaddik/FullStackDeploymentHandbook
+Project source code: https://github.com/ImadSaddik/ImadSaddikWebsite
 
 ## Local hygiene
 
@@ -12,3 +15,4 @@ In this subchapter, we will focus on enforcing code quality at the source. This 
 
 - **[Module 1: Protect the default branch](book/01_protect_the_default_branch.md)**
 - **[Module 2: Catch errors early with pre-commit hooks](book/02_pre_commit_hooks.md)**
+- **[Module 3: Continuous integration & unit tests](book/03_continuous_integration_unit_tests.md)**
