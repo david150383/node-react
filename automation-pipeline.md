@@ -42,3 +42,11 @@ Your pipeline is now extremely robust. It automatically audits your dependencies
 In **Module 5 Advanced testing & DAST**, you will take the pipeline to the next level. You will learn how to start your application inside the CI runner (including the Nodejs backend, the React frontend, and a temporary Meilisearch database). Once the app is running, you will execute Playwright End-to-End tests and use OWASP ZAP to dynamically attack your API, proving that your application is secure when it is fully alive.
 
 - **[Module 5: Advanced testing & DAST](book/05_advanced_testing_dast.md)**
+
+### What is next?
+
+Congratulations! You have built a complete Continuous Integration pipeline. Every time you push code, GitHub Actions now starts your entire system to make sure your code is clean, works well, and is secure.
+
+But right now, all of that checked code just sits in your repository. It is time to get it to your users.
+
+In **Module 6: Continuous delivery**, you will connect GitHub to your live production server. You will learn how to safely save server keys using GitHub Secrets, package your final frontend files, and write a secure deployment script. Finally, you will set up automatic daily backups for your database and search engine so you can update your site with full confidence, knowing your data is always safe.

@@ -261,46 +261,60 @@ Because a user needs to see the user interface (UI) and load data, end-to-end te
 You can install Playwright inside your frontend directory:
 
 ```bash
-pnpm create playwright
+npm init playwright@latest
 ```
 
 During installation, Playwright will create a configuration file. Let's update it to include clean settings for your GitHub pipeline, such as retries on failure, GitHub error markers, and an automatic development server.
 
-Create or update your `frontend/playwright.config.js` file:
+Create or update your `frontend/playwright.config.ts` file:
 
 ```javascript
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Read environment variables from file.
+ * https://github.com/motdotla/dotenv
+ */
+// import dotenv from 'dotenv';
+// import path from 'path';
+// dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+/**
+ * See https://playwright.dev/docs/test-configuration.
+ */
 export default defineConfig({
-  testDir: "./tests/e2e",
+  testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: undefined,
+  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["list"], ["github"]] : "html",
-  expect: {
-    timeout: 10 * 1000,
-  },
   use: {
-    baseURL: "http://localhost:8080",
-    trace: "on-first-retry",
-    screenshot: "only-on-failure",
+    baseURL: 'http://127.0.0.1:5173',
+    trace: 'on-first-retry',
   },
+
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
     },
+
     {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
     },
   ],
   webServer: {
-    command: "pnpm run dev",
-    url: "http://localhost:8080",
+    command: 'npm run dev -- --host 127.0.0.1',
+    url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 120000,
   },
 });
 ```
@@ -322,9 +336,10 @@ On your computer, Playwright opens a webpage to show your test results. In a Git
 
 ```javascript
 webServer: {
-  command: "pnpm run dev",
-  url: "http://localhost:8080",
+  command: 'npm run dev -- --host 127.0.0.1',
+  url: 'http://127.0.0.1:5173',
   reuseExistingServer: !process.env.CI,
+  timeout: 120000,
 },
 ```
 
@@ -370,6 +385,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -382,14 +407,25 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./backend
         run: npm ci
 
       - name: Run database migrations
+        working-directory: ./backend
         run: npm run migrate
 
       - name: Start backend server
         working-directory: ./backend
-        run: npm run dev
+        run: |
+          npm run dev &
+          echo "Waiting for backend server on port 3000..."
+          for i in {1..30}; do
+            if curl -s -f http://localhost:3000/health/live > /dev/null 2>&1; then
+              echo "Backend server is up and healthy!"
+              break
+            fi
+            sleep 1
+          done
 
       - name: Seed E2E test data
         working-directory: ./backend
@@ -622,3 +658,223 @@ Since you're building a production-grade project, I'd keep:
 * `tests/e2e/` → Playwright
 
 with explicit `include`/`testDir` settings. This avoids accidental cross-execution in local development and CI.
+
+
+
+### Dynamic application security testing (DAST)
+
+Earlier in your pipeline, you used Static Application Security Testing (SAST) to check your raw source code for security flaws. But some security issues only appear when your application is running. Dynamic Application Security Testing (DAST) interacts with your live application just like a real hacker would, testing your inputs and services for weaknesses.
+
+To run a DAST scan in GitHub Actions, you need to start the backend system. Once the backend is running, you can point a scanner tool at your local URL to analyze the system.
+
+For this pipeline, you will use the [OWASP ZAP](https://www.zaproxy.org/) (Zed Attack Proxy) API scan. OWASP ZAP is a highly trusted industry-standard tool. By pointing it directly at FastAPI's automatically generated `openapi.json` file, ZAP immediately understands every route your API has and tests them one by one.
+
+> [!NOTE]
+> We are using this fast, lightweight DAST scan so it can easily run inside our regular GitHub pipeline without slowing you down. However, this only covers the API. Later in this book, we will set up a separate, rigorous daily scan that runs overnight to check the entire frontend application.
+
+Create a new file at `.github/workflows/dast-scan.yml`:
+
+```yaml
+name: DAST scan
+
+on:
+  workflow_call:
+
+env:
+  NODE_ENV: test
+  PORT: 3000
+  DB_HOST: localhost
+  DB_USER: postgres
+  DB_PASSWORD: test_password
+  DB_NAME: test_db
+  JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+  JWT_PUBLIC_KEY_PATH: ./keys/public.pem
+
+jobs:
+  zap_scan:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Seed test data
+        run: npm run seed:users
+
+      - name: Start backend server
+        run: |
+          npm run dev &
+          echo "Waiting for backend server on port 3000..."
+          for i in {1..30}; do
+            if curl -s -f http://localhost:3000/health/live > /dev/null 2>&1; then
+              echo "Backend server is up and healthy!"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: "http://localhost:3000"
+          rules_file_name: ".github/zap-rules.tsv"
+          allow_issue_writing: false
+          fail_action: false
+```
+
+this is copy of `e2e-tests.yml` till `Start backend server` only change is as below
+* added OWASP ZAP Scan for scan backend application urls
+```
+- name: OWASP ZAP Baseline Scan
+  uses: zaproxy/action-baseline@v0.14.0
+  with:
+    target: "http://localhost:3000"
+    rules_file_name: ".github/zap-rules.tsv"
+    allow_issue_writing: false
+    fail_action: false
+```
+* added PORT 3000 in global env because in above target url we have used port 3000
+
+Also in backend api we have created a root route with just static page url, so OWASP can get api urls for scan
+
+> [!NOTE] Instead of making the scanner guess how to find your API links by clicking through a webpage, we give it the exact list. Because FastAPI/Nest.JS automatically creates an `openapi.json` file, ZAP can read this file to immediately understand every route and setting your backend supports. It then tests those specific links directly.
+
+we just need to use `zaproxy/action-api-scan@v0.10.0` instead of `zaproxy/action-baseline@v0.14.0` with below settings, but as we don't have OpenApi integrated so not used.
+```
+- name: ZAP API scan
+  uses: zaproxy/action-api-scan@v0.10.0
+  with:
+    target: "http://localhost:8000/openapi.json"
+    format: openapi
+    rules_file_name: ".github/zap-rules.tsv"
+    allow_issue_writing: false
+    fail_action: true
+```
+Let's break down this workflow into manageable pieces.
+
+```yaml
+allow_issue_writing: false
+fail_action: true
+```
+
+By default, the OWASP ZAP GitHub Action tries to open a new GitHub Issue in your project for every single weakness it finds. While this is helpful for daily scheduled scans, it is not ideal for code reviews. If you leave this setting on, one bad update could fill your project with dozens of issues. Setting `allow_issue_writing: false` stops this spam, and `fail_action: true` guarantees the pipeline still fails if a problem is found.
+
+```yaml
+rules_file_name: ".github/zap-rules.tsv"
+```
+
+Security scanners are very strict and often flag things that are not actually dangerous in your specific project (false alarms). By creating a `zap-rules.tsv` file, you can tell the scanner to ignore specific warnings. This makes sure your pipeline only fails when there is a real threat, preventing developers from getting tired of useless alerts.
+
+If you run the scan right now, your pipeline might turn red and fail, even if your code is secure. This happens because the DAST scanner is testing your local, basic development server instead of a real live website.
+
+In a real production environment, you likely use a tool like `Nginx` or `Cloudflare` to handle SSL certificates and add security headers (like CORS, Cache-Control, and Strict-Transport-Security). Because your temporary GitHub runner does not use Nginx, ZAP will panic and flag these missing headers as dangerous vulnerabilities.
+
+To prevent the pipeline from failing because of these environment differences, you can create a TSV (Tab-Separated Values) file to quiet specific alerts.
+
+Create a new file at `.github/zap-rules.tsv` and add the following lines:
+
+```tsv
+10096   IGNORE  (Timestamp Disclosure - Unix)
+10106   IGNORE  (HTTP Only Site)
+10021   IGNORE  (X-Content-Type-Options - Handled by Nginx)
+90004   IGNORE  (Insufficient Site Isolation / CORP - Handled by Nginx)
+10020   IGNORE  (X-Frame-Options - Handled by Nginx)
+10035   IGNORE  (Strict-Transport-Security - Handled by Nginx)
+10038   IGNORE  (Content Security Policy - Handled by Nginx)
+10063   IGNORE  (Permissions Policy - Handled by Nginx)
+10055   IGNORE  (CSP Wildcards and Unsafe - Handled by Nginx)
+40040   IGNORE  (CORS Header - Handled by Nginx)
+10049   IGNORE  (Cache Headers - Handled by Nginx)
+10027   IGNORE  (Suspicious Comments - False alarms in outside libraries)
+```
+
+The format of this file is: `<Rule ID>  <ACTION>  <Comment>`.
+
+By marking these specific IDs as `IGNORE`, you are telling ZAP: "We know these headers are missing right now, but Nginx handles them in production, so do not fail our pipeline". You also tell it to ignore the fact that the test site does not use HTTPS, since you are testing on `localhost`.
+
+Your rules file will change as your project grows. When you first add a DAST scanner, you will spend a few hours or days reviewing the results and adding `IGNORE` rules for false alarms.
+
+Over time, this file will stabilize. Once it stops changing, you can completely trust your pipeline: if the DAST scan fails, it means you have a real security issue that needs your immediate attention.
+
+### Updating the orchestrator
+
+Now you can bring everything together by updating your main `ci.yml` file. Open the file and include the new jobs:
+
+```yaml
+# ...
+
+jobs:
+  dast-check:
+    name: Backend
+    needs: backend-lint-format-check
+    uses: ./.github/workflows/dast-scan.yml
+    secrets: inherit
+```
+
+Finally, scroll down to the very bottom of your `ci.yml` file and update your `pipeline-success` job. You must add the three new jobs to the `needs` list so the pipeline knows to check them before finishing:
+
+```yaml
+  pipeline-success:
+    name: Pipeline success
+    needs:
+      [
+        frontend-vulnerability-check,
+        backend-vulnerability-check,
+        backend-sast-check,
+        frontend-lint-format-check,
+        backend-lint-format-check,
+        frontend-unit-tests,
+        backend-unit-tests,
+        backend-integration-tests,
+        e2e-tests,
+        dast-check,
+      ]
+    runs-on: ubuntu-latest
+    if: always()
+
+# ...
+```
+
+Save and commit your changes. Your GitHub Actions pipeline is now fully equipped to handle integration testing, end-to-end user browser simulations, and live security scans automatically on every single commit.
