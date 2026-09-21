@@ -40,3 +40,5 @@ In the next subchapter, **Module 4: Automated security scanning**, you will add 
 Your pipeline is now extremely robust. It automatically audits your dependencies, scans your source code for bad practices, enforces strict formatting, and verifies your logic with unit tests. However, all of these checks are "static"; they look at the code while it is sitting still.
 
 In **Module 5 Advanced testing & DAST**, you will take the pipeline to the next level. You will learn how to start your application inside the CI runner (including the Nodejs backend, the React frontend, and a temporary Meilisearch database). Once the app is running, you will execute Playwright End-to-End tests and use OWASP ZAP to dynamically attack your API, proving that your application is secure when it is fully alive.
+
+- **[Module 5: Advanced testing & DAST](book/05_advanced_testing_dast.md)**

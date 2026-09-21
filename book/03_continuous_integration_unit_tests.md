@@ -232,11 +232,6 @@ on:
 # 1. Global env block: This applies to ALL jobs and ALL steps automaticall
 env:
   NODE_ENV: test
-  DB_HOST: localhost
-  DB_USER: postgres
-  DB_PASSWORD: test_password
-  DB_NAME: test_db
-  # Update these paths if your test environment looks for specific dummy files
   JWT_PRIVATE_KEY_PATH: ./keys/private.pem
   JWT_PUBLIC_KEY_PATH: ./keys/public.pem
 
@@ -244,25 +239,11 @@ jobs:
   tests:
     name: Run unit tests
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./backend
-    # 1. Spin up a live PostgreSQL container inside the runner
-    services:
-      postgres:
-        image: postgres:15 # Change to your preferred version (e.g., 14, 16)
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        # Wait until Postgres is healthy and ready to accept connections
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -277,34 +258,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 3. Run your migration script to set up the database tables in ci environment
-      - name: Run database migrations
-        run: npm run migrate
-
       - name: Run unit tests
-        run: npm run test
+        run: npm run test:unit
 ```
 
 Like the frontend file, this workflow checks out the code, sets up Node.js with `npm` caching, and installs your dependencies.
 
-The most important part is the final step: `run: npm run test`. This executes your Backend test suite. 
-
-##### As integration test communicating with database, there is two approach for handle this
-1. In-Memory Database (pg-mem, SQLite)
-* **Blazing Fast Test Execution:** Because reading and writing data occurs completely inside volatile system RAM, tests complete in milliseconds. There are no slow disk read/write cycles.
-* *Instant Infrastructure Startup:* There is no need to wait for a database to download, spin up, or pass health checks. The database exists the exact microsecond your test script starts.
-* **Zero Host Requirements:** Anyone can run the test suite immediately upon cloning the project. Developers do not need to install Docker, PostgreSQL, or manage local port conflicts on their laptops.
-**Isolated State per Test:** It is incredibly easy to reset, drop, or completely recreate a clean database state between individual test blocks because destroying it simply means clearing a JavaScript variable.
-
-2. Real Docker Container (GitHub Services)
-* **100% Production Parity:** You are testing against the actual, official PostgreSQL engine binaries. If a complex query, constraint, or indexing strategy works in your test container, it is guaranteed to work exactly the same way in production.
-* **Full Native Feature Support:** Built-in simulation tools like pg-mem do not support 100% of advanced PostgreSQL features. A real container perfectly supports elements like triggers, stored procedures, complex aggregations, window functions, and specialized data types (such as JSONB or UUID).
-
-* **Tests Your Real Migration Scripts:** Running a real container lets you run your actual npm run migrate workflow in CI exactly how it will execute on production deployment day. This helps catch broken SQL migration files before they reach live servers.
-
-* **Accurate Performance & Concurrency Testing:** If you want to run integration tests that simulate multiple users hitting the database at the exact same time (concurrency checking), a real container handles connection pooling, row-locking, and query queues precisely like your production server.
-
-Both npm run test and npm run migrate need environment variables that's why i created it global.
+The most important part is the final step: `run: npm run test:unit`. This executes your Backend test suite. 
 
 ### The orchestrator
 
