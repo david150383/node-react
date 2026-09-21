@@ -33,6 +33,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -53,8 +63,16 @@ jobs:
         run: npm run migrate
 
       - name: Start backend server
-        working-directory: ./backend
-        run: npm run dev
+        run: |
+          npm run dev &
+          echo "Waiting for backend server on port 3000..."
+          for i in {1..30}; do
+            if curl -s -f http://localhost:3000/health/live > /dev/null 2>&1; then
+              echo "Backend server is up and healthy!"
+              break
+            fi
+            sleep 1
+          done
 
       - name: Seed E2E test data
         working-directory: ./backend
