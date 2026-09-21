@@ -12,12 +12,16 @@ jobs:
         working-directory: ./frontend
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "22"
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Semgrep
+        run: pip install semgrep
 
       - name: Run Semgrep SAST
-        run: npx semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error
+        run: semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error

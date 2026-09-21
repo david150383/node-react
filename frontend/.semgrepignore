@@ -1,0 +1,3 @@
+# Infrastructure configuration files (analyzed separately in container/infra pipeline)
+Dockerfile
+nginx.conf
