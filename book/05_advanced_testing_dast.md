@@ -250,3 +250,269 @@ Finally, scroll down to the very bottom of your `ci.yml` file and update your `p
 ```
 
 Save and commit your changes. Your GitHub Actions pipeline is now fully equipped to handle integration testing on every single commit.
+
+
+### End to end tests
+
+Now that your API is tested, you can add end to end (E2E) tests. These tests rely on a tool like Playwright to open a real browser and simulate how users actually interact with your application.
+
+Because a user needs to see the user interface (UI) and load data, end-to-end tests require the frontend, backend, and database to all run at the same time. With just one end-to-end test, you can make sure that the entire system works together perfectly.
+
+You can install Playwright inside your frontend directory:
+
+```bash
+pnpm create playwright
+```
+
+During installation, Playwright will create a configuration file. Let's update it to include clean settings for your GitHub pipeline, such as retries on failure, GitHub error markers, and an automatic development server.
+
+Create or update your `frontend/playwright.config.js` file:
+
+```javascript
+import { defineConfig, devices } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: undefined,
+  reporter: process.env.CI ? [["list"], ["github"]] : "html",
+  expect: {
+    timeout: 10 * 1000,
+  },
+  use: {
+    baseURL: "http://localhost:8080",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+  },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+  ],
+  webServer: {
+    command: "pnpm run dev",
+    url: "http://localhost:8080",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
+});
+```
+
+Let's break down how this file changes its behavior automatically when it runs inside GitHub Actions.
+
+```javascript
+forbidOnly: !!process.env.CI,
+retries: process.env.CI ? 2 : 0,
+```
+
+When you write tests on your computer, you might use `test.only` to focus on a single test. If you accidentally commit that line, `forbidOnly` will make the GitHub pipeline fail. This stops you from saving code that skips most of your tests. Also, we set `retries` to 2 only in GitHub Actions to retry any tests that fail by mistake due to slow runner environments.
+
+```javascript
+reporter: process.env.CI ? [["list"], ["github"]] : "html",
+```
+
+On your computer, Playwright opens a webpage to show your test results. In a GitHub runner, there is no screen to open that page. Instead, we use the `github` reporter when running in CI. This setting shows errors directly inside the GitHub Actions interface, making mistakes very easy to find.
+
+```javascript
+webServer: {
+  command: "pnpm run dev",
+  url: "http://localhost:8080",
+  reuseExistingServer: !process.env.CI,
+},
+```
+
+Instead of writing complex scripts to start your frontend server before running tests, Playwright handles it for you. It runs your startup command and checks the URL until the page responds. The `reuseExistingServer` line means that on your computer, it will use your already running server, but in GitHub Actions, it will start a brand new one.
+
+With the configuration ready, you can create the CI workflow. This workflow will take the most time because it starts the entire system.
+
+Create a new file at `.github/workflows/e2e-tests.yml`:
+
+```yaml
+name: E2E tests
+
+on:
+  workflow_call:
+
+env:
+  NODE_ENV: test
+  DB_HOST: localhost
+  DB_USER: postgres
+  DB_PASSWORD: test_password
+  DB_NAME: test_db
+  JWT_PRIVATE_KEY_PATH: ./keys/private.pem
+  JWT_PUBLIC_KEY_PATH: ./keys/public.pem
+
+jobs:
+  tests:
+    name: Run E2E tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Start backend server
+        working-directory: ./backend
+        run: npm run dev
+
+      - name: Seed E2E test data
+        working-directory: ./backend
+        run: npm run seed:users
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Get Playwright version
+        id: playwright-version
+        working-directory: ./frontend
+        run: |
+          echo "version=$(npm list @playwright/test --depth=0 --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers (if no cache)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Install Playwright dependencies (if cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: ./frontend
+        run: npx playwright install-deps chromium firefox
+
+      - name: Run E2E tests
+        working-directory: ./frontend
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+```
+
+Let's look at the new concepts introduced in this workflow.
+
+```yaml
+- name: Seed E2E test data
+  working-directory: ./backend
+  run: npm run seed:users
+```
+
+Before running Playwright, the application cannot be empty. If a test tries to Sign in a user that is not there, it will fail. This step runs a Node script to fill the temporary Postgres database with test data so the browser has something to interact with.
+
+```yaml
+- name: Cache Playwright browsers
+  uses: actions/cache@v4
+  id: playwright-cache
+  with:
+    path: ~/.cache/ms-playwright
+    key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+```
+Every time Playwright runs, it downloads large browser programs. Doing this on every commit wastes time. By using `actions/cache@v4`, we save the downloaded browsers. The extra steps make sure we only download the browsers if the saved ones are missing, saving you a minute or more of waiting time.
+
+```yaml
+- name: Upload Playwright report
+  uses: actions/upload-artifact@v4
+  if: ${{ !cancelled() }}
+  with:
+    name: playwright-report
+    path: frontend/playwright-report/
+```
+
+If an E2E test fails, it is hard to know why just by looking at text files. Playwright creates a helpful report with screenshots and recordings. The `upload-artifact` step takes this folder and attaches it to the GitHub Actions page. You can download it to see exactly what the browser saw when the test failed. Using `if: ${{ !cancelled() }}` guarantees that the report saves even when your tests fail.
+
+
+### Updating the orchestrator
+
+Update your main `ci.yml` file and put blow job after `backend-integration-tests`. Open the file and include the new jobs:
+
+```yaml
+# ...
+
+jobs:
+  e2e-tests:
+    name: E2E
+    needs: [frontend-unit-tests, backend-integration-tests]
+    uses: ./.github/workflows/e2e-tests.yml
+```
+
+Finally, scroll down to the very bottom of your `ci.yml` file and update your `pipeline-success` job. You must add `e2e-tests` to the `needs` list so the pipeline knows to check them before finishing:
+
+```yaml
+  pipeline-success:
+    name: Pipeline success
+    needs:
+      [
+        frontend-vulnerability-check,
+        backend-vulnerability-check,
+        backend-sast-check,
+        frontend-lint-format-check,
+        backend-lint-format-check,
+        frontend-unit-tests,
+        backend-unit-tests,
+        backend-integration-tests,
+        e2e-tests,
+      ]
+    runs-on: ubuntu-latest
+    if: always()
+
+# ...
+```
+
+Save and commit your changes. Your GitHub Actions pipeline is now fully equipped to handle End to End testing on every single commit.
