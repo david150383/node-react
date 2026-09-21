@@ -516,3 +516,109 @@ Finally, scroll down to the very bottom of your `ci.yml` file and update your `p
 ```
 
 Save and commit your changes. Your GitHub Actions pipeline is now fully equipped to handle End to End testing on every single commit.
+
+> [!NOTE]
+> as we are using both Vitest for unit test and playwright for e2e test, if you run npm run test now you may get some error like e2e test get failed, because vitest by default include all test files, but for playwright we need to use different command so in produciton system we need to consider few options
+
+
+Both frameworks use `*.spec.ts` by default, so you need to separate their test discovery.
+
+## Option 1 (recommended): Exclude Playwright tests from Vitest
+
+In your `vitest.config.ts`:
+
+TypeScript
+
+```
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/e2e/**'
+    ]
+  }
+})
+```
+
+Now:
+
+Bash
+
+```
+npm run test      # Runs only Vitest
+npm run test:e2e  # Runs only Playwright
+```
+
+## Option 2: Use separate folders with explicit include
+
+A cleaner production setup is:
+
+```
+tests/
+  unit/
+    home.spec.ts
+  integration/
+    api.spec.ts
+  e2e/
+    home.spec.ts
+```
+
+Then configure Vitest:
+
+TypeScript
+
+```
+export default defineConfig({
+  test: {
+    include: [
+      'tests/unit/**/*.spec.ts',
+      'tests/integration/**/*.spec.ts'
+    ]
+  }
+})
+```
+
+And Playwright (`playwright.config.ts`):
+
+TypeScript
+
+```
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './tests/e2e'
+})
+```
+
+## Option 3: Different file suffixes
+
+Some teams use:
+
+* `*.test.ts` → Vitest
+
+* `*.spec.ts` → Playwright
+
+Then configure Vitest:
+
+TypeScript
+
+```
+test: {
+  include: ['**/*.test.ts']
+}
+```
+
+### Production recommendation
+
+Since you're building a production-grade project, I'd keep:
+
+* `tests/unit/` → Vitest
+
+* `tests/integration/` → Vitest
+
+* `tests/e2e/` → Playwright
+
+with explicit `include`/`testDir` settings. This avoids accidental cross-execution in local development and CI.
