@@ -63,6 +63,7 @@ jobs:
         run: npm run migrate
 
       - name: Start backend server
+        working-directory: ./backend
         run: |
           npm run dev &
           echo "Waiting for backend server on port 3000..."
