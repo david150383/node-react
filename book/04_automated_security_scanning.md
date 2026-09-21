@@ -119,28 +119,32 @@ jobs:
         working-directory: ./backend
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "22"
+          python-version: "3.12"
+
+      - name: Install Semgrep
+        run: pip install semgrep
 
       - name: Run Semgrep SAST
-        run: npx semgrep scan --config=p/nodejs --config=p/owasp-top-ten --error
+        run: semgrep scan --config=p/nodejs --config=p/owasp-top-ten --error
 ```
 
-This workflow follows the familiar pattern of checking out the code and setting up Node.js.
-The magic happens in the final step: `run: npx semgrep scan --config=p/nodejs --config=p/owasp-top-ten --error`. Here is what those flags do:
+This workflow checks out the code, sets up Python 3.12 with `actions/setup-python@v5`, and installs Semgrep using `pip install semgrep`. Semgrep is a Python-based CLI tool (not an npm package), so we install and run it using Python.
 
-* **`npx semgrep scan`**: Executes the Semgrep CLI directly using `npx` without needing a separate installation step. By default, it recursively scans all source files in the current working directory (`./backend`).
+The magic happens in the final step: `run: semgrep scan --config=p/nodejs --config=p/owasp-top-ten --error`. Here is what those flags do:
+
+* **`semgrep scan`**: Executes the Semgrep CLI directly against your source code. By default, it recursively scans all source files in the current working directory (`./backend`).
 * **`--config=p/nodejs`**: Loads Semgrep's curated Node.js ruleset to catch vulnerabilities specific to Node.js environments and popular frameworks like Express or Fastify.
 * **`--config=p/owasp-top-ten`**: Loads rules covering broad web security risks based on the OWASP Top 10 vulnerabilities.
 * **`--error`**: Configures Semgrep to exit with a non-zero failure code only if high-severity vulnerabilities are found. This prevents your pipeline from failing due to minor, low-risk warnings or false positives.
 
 If Semgrep finds a serious vulnerability, it will print a detailed report in the GitHub Actions log and immediately fail the job, preventing the insecure code from reaching production.
 
-To see this in action, try temporarily adding a deliberate security flaw to your backend. Push a commit that uses a dangerous, unsafe execution method (like adding `eval("console.log('" + req.query.input + "')");` inside one of your API routes in `app.js` or `server.js`). Push this change to a new test branch and open a pull request against your main branch:"
+To see this in action, try temporarily adding a deliberate security flaw to your backend. Push a commit that uses a dangerous, unsafe execution method (like adding `eval("console.log('" + req.query.input + "')");` inside one of your API routes in `app.js` or `server.js`). Push this change to a new test branch and open a pull request against your main branch:
 
 You can use the exact same tool (Semgrep) for both backend and frontend. You just swap out the Node.js ruleset for React and client-side JavaScript rulesets.
 
@@ -161,16 +165,22 @@ jobs:
         working-directory: ./frontend
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "22"
+          python-version: "3.12"
+
+      - name: Install Semgrep
+        run: pip install semgrep
 
       - name: Run Semgrep SAST
-        run: npx semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error
+        run: semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error
 ```
+
+> [!NOTE]
+> In your `frontend/` directory, create a `.semgrepignore` file containing `Dockerfile` and `nginx.conf` so Semgrep focuses purely on your React application source code and does not trigger false positives on container root execution or reverse proxy headers.
 
 
 #### Key Rulesets Used:
