@@ -54,6 +54,12 @@ jobs:
     needs: [frontend-unit-tests, backend-integration-tests]
     uses: ./.github/workflows/e2e-tests.yml
 
+  dast-check:
+    name: Backend
+    needs: backend-lint-format-check
+    uses: ./.github/workflows/dast-scan.yml
+    secrets: inherit
+
   pipeline-success:
     name: Pipeline success
     needs:
@@ -68,6 +74,7 @@ jobs:
         backend-unit-tests,
         backend-integration-tests,
         e2e-tests,
+        dast-check,
       ]
     runs-on: ubuntu-latest
     if: always()

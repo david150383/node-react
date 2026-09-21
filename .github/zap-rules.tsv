@@ -1,0 +1,9 @@
+# ZAP rule threshold configuration for DAST Baseline Scan
+# Format: <rule-id>\t<threshold>\t[<regex-or-comment>]
+# Valid thresholds: IGNORE, INFO, LOW, MEDIUM, HIGH, OUTOFSCOPE
+
+# 10038: Content Security Policy (CSP) Header Not Set (Commonly ignored on API endpoints)
+10038	IGNORE	Content Security Policy (CSP) Header Not Set
+
+# 10096: Timestamp Disclosure - Unix (Often present in API timestamps/tokens)
+10096	INFO	Timestamp Disclosure
