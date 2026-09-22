@@ -153,7 +153,7 @@ export const AdminUserManager: React.FC = () => {
           >
             <Loader2 size={32} color="#6366f1" className="animate-spin" />
             <p style={{ color: 'var(--text-secondary)' }}>
-              Loading user directory from Auth Service (:3001)...
+              Loading user directory from Auth Service (:3000)...
             </p>
           </div>
         ) : filteredUsers.length === 0 ? (
