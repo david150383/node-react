@@ -26,6 +26,6 @@ COPY --from=builder /app/migrations ./migrations
 
 USER node
 
-EXPOSE 3001
+EXPOSE 3000
 
 CMD ["sh", "-c", "node dist/migrate.js && node dist/server.js"]

@@ -34,6 +34,33 @@ export function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
+  // Root discovery endpoint
+  app.get("/", (req, res) => {
+    if (req.accepts("html")) {
+      return res.status(200).type("html").send(`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>API Service</title></head>
+<body>
+  <h1>API Service</h1>
+  <nav>
+    <ul>
+      <li><a href="/health">/health</a></li>
+      <li><a href="/health/live">/health/live</a></li>
+      <li><a href="/health/ready">/health/ready</a></li>
+      <li><a href="/products">/products</a></li>
+    </ul>
+  </nav>
+</body>
+</html>`);
+    }
+
+    return sendSuccess(res, {
+      service: "auth-service",
+      status: "ok",
+      endpoints: ["/health", "/health/live", "/health/ready", "/products"],
+    });
+  });
+
   // 4. Health Checks (Liveness & Readiness)
   app.get("/health/live", (_req, res) => {
     return sendSuccess(res, {

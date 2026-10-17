@@ -1,0 +1,26 @@
+name: Frontend SAST check
+
+on:
+  workflow_call:
+
+jobs:
+  semgrep-react-check:
+    name: Semgrep React SAST scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep SAST
+        run: semgrep scan --config=p/react --config=p/javascript --config=p/owasp-top-ten --error
